@@ -1,7 +1,7 @@
 package errors
 
 import (
-    liberrors "todoapp/lib/errors"
+	liberrors "todoapp/lib/errors"
 )
 
 // ErrGeneralFailedPrecondition ...
@@ -37,13 +37,13 @@ func NewErrGeneralNotFound() *ErrGeneralNotFound {
 // GeneralTag ...
 type GeneralTag struct {
 	FailedPrecondition *ErrGeneralFailedPrecondition
-	NotFound *ErrGeneralNotFound
+	NotFound           *ErrGeneralNotFound
 }
 
 // General ...
 var General = &GeneralTag{
 	FailedPrecondition: NewErrGeneralFailedPrecondition(),
-	NotFound: NewErrGeneralNotFound(),
+	NotFound:           NewErrGeneralNotFound(),
 }
 
 // ErrTodoInvalidInputCreate ...
@@ -79,11 +79,11 @@ func NewErrTodoNotFoundTodo() *ErrTodoNotFoundTodo {
 // TodoTag ...
 type TodoTag struct {
 	InvalidInputCreate *ErrTodoInvalidInputCreate
-	NotFoundTodo *ErrTodoNotFoundTodo
+	NotFoundTodo       *ErrTodoNotFoundTodo
 }
 
 // Todo ...
 var Todo = &TodoTag{
 	InvalidInputCreate: NewErrTodoInvalidInputCreate(),
-	NotFoundTodo: NewErrTodoNotFoundTodo(),
+	NotFoundTodo:       NewErrTodoNotFoundTodo(),
 }

@@ -1,7 +1,9 @@
 package generate
 
 import (
+	"bytes"
 	"fmt"
+	"go/format"
 	"io"
 	"sort"
 	"strings"
@@ -145,25 +147,36 @@ func generateErrorTag(tag errorTagEntry, writer io.Writer) error {
 }
 
 // Generate generates file from yml
-func Generate(tags map[string]ErrorMap, writer io.Writer) error {
-	_, err := writer.Write([]byte(imports))
+func Generate(tags map[string]ErrorMap, output io.Writer) error {
+	var buf bytes.Buffer
+	_, err := buf.Write([]byte(imports))
 	if err != nil {
 		return err
 	}
 
 	tagList := tagMapToList(tags)
 	for _, tag := range tagList {
-		_, err = writer.Write([]byte("\n\n"))
+		_, err = buf.Write([]byte("\n\n"))
 		if err != nil {
 			return err
 		}
 
-		err := generateErrorTag(tag, writer)
+		err := generateErrorTag(tag, &buf)
 		if err != nil {
 			return err
 		}
 	}
 
-	_, err = writer.Write([]byte("\n"))
+	_, err = buf.Write([]byte("\n"))
+	if err != nil {
+		return err
+	}
+
+	result, err := format.Source(buf.Bytes())
+	if err != nil {
+		return err
+	}
+
+	_, err = output.Write(result)
 	return err
 }

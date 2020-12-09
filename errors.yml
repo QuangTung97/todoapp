@@ -21,4 +21,3 @@ todo:
     message: "Invalid create input"
     details:
       msg: string
-
