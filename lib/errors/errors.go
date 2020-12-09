@@ -23,6 +23,8 @@ type Error struct {
 	Details   map[string]interface{}
 }
 
+var _ error = &Error{}
+
 func (e *Error) Error() string {
 	return fmt.Sprintf(
 		"rpc status: %v, code: %s, message: %s, details: %v",
@@ -30,7 +32,21 @@ func (e *Error) Error() string {
 	)
 }
 
-var _ error = &Error{}
+// WithDetail return a new error with detail
+func (e *Error) WithDetail(field string, value interface{}) *Error {
+	details := make(map[string]interface{})
+	for f, v := range e.Details {
+		details[f] = v
+	}
+	details[field] = value
+
+	return &Error{
+		RPCStatus: e.RPCStatus,
+		Code:      e.Code,
+		Message:   e.Message,
+		Details:   details,
+	}
+}
 
 func fieldValueToDetail(field string, value interface{}) (proto.Message, error) {
 	switch v := value.(type) {

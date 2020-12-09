@@ -3,9 +3,22 @@ general:
     rpcStatus: 1
     code: "01"
     message: "Not found"
-  failedPrecondtion:
+  failedPrecondition:
     rpcStatus: 2
     code: "02"
     message: "Failed precondition"
     details:
       min: int64
+
+todo:
+  notFoundTodo:
+    rpcStatus: 1
+    code: "02"
+    message: "Not found todo"
+  invalidInputCreate:
+    rpcStatus: 4
+    code: "04"
+    message: "Invalid create input"
+    details:
+      msg: string
+

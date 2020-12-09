@@ -1,20 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"gopkg.in/yaml.v2"
+	"todoapp/lib/errors/generate"
 )
-
-type errorInfo struct {
-	RPCStatus uint32            `yaml:"rpcStatus"`
-	Code      string            `yaml:"code"`
-	Message   string            `yaml:"message"`
-	Details   map[string]string `yaml:"details"`
-}
-
-type errorList map[string]errorInfo
 
 func main() {
 	file, err := os.Open("errors.yml")
@@ -22,12 +13,25 @@ func main() {
 		panic(err)
 	}
 
-	errorTags := make(map[string]errorList)
+	errorTags := make(map[string]generate.ErrorMap)
 
 	err = yaml.NewDecoder(file).Decode(&errorTags)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(errorTags)
+	output, err := os.OpenFile("pkg/errors/errors.go", os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		panic(err)
+	}
+
+	err = generate.Generate(errorTags, output)
+	if err != nil {
+		panic(err)
+	}
+
+	err = output.Close()
+	if err != nil {
+		panic(err)
+	}
 }
