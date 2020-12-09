@@ -77,10 +77,15 @@ func NextErrorCodeForRPCStatus(tags map[string]ErrorMap, rpcStatus uint32) (stri
 	for _, errorMap := range tags {
 		for _, info := range errorMap {
 			if info.RPCStatus == rpcStatus {
-				n, err := strconv.ParseInt(info.Code[2:], 10, 64)
-				if err != nil {
-					return "", err
+				n := int64(0)
+				if len(info.Code) > 2 {
+					var err error
+					n, err = strconv.ParseInt(info.Code[2:], 10, 64)
+					if err != nil {
+						return "", err
+					}
 				}
+
 				codeNums = append(codeNums, int(n))
 			}
 		}

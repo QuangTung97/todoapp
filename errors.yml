@@ -1,23 +1,23 @@
 general:
-  notFound:
-    rpcStatus: 1
-    code: "01"
-    message: "Not found"
-  failedPrecondition:
+  unknown:
     rpcStatus: 2
-    code: "02"
-    message: "Failed precondition"
+    code: "0200"
+    message: "Unknown"
+  unknownValue:
+    rpcStatus: 2
+    code: "0201"
+    message: "Unknown value"
     details:
       min: int64
 
 todo:
-  notFoundTodo:
-    rpcStatus: 1
-    code: "02"
+  invalidArgument:
+    rpcStatus: 3
+    code: "03"
     message: "Not found todo"
-  invalidInputCreate:
+  deadlineExceededCommand:
     rpcStatus: 4
     code: "04"
-    message: "Invalid create input"
+    message: "Deadline exceeded"
     details:
       msg: string

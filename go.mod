@@ -7,6 +7,7 @@ require (
 	github.com/gogo/status v1.1.0
 	github.com/golang/protobuf v1.4.3
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
+	github.com/spf13/cobra v1.1.1
 	github.com/stretchr/testify v1.5.1
 	google.golang.org/grpc v1.34.0
 	gopkg.in/yaml.v2 v2.4.0
