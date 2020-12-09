@@ -1,0 +1,11 @@
+general:
+  notFound:
+    rpcStatus: 1
+    code: "01"
+    message: "Not found"
+  failedPrecondtion:
+    rpcStatus: 2
+    code: "02"
+    message: "Failed precondition"
+    details:
+      min: int64

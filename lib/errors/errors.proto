@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package kitchen.errors;
+
+option go_package = ".;errors";
+
+import "google/protobuf/timestamp.proto";
+
+// ErrorDetailBool
+message ErrorDetailBool {
+  //
+  string field = 1;
+  //
+  bool value = 2;
+}
+
+// ErrorDetailString
+message ErrorDetailString {
+  //
+  string field = 1;
+  //
+  string value = 2;
+}
+
+// ErrorDetailInt64
+message ErrorDetailInt64 {
+  //
+  string field = 1;
+  //
+  int64 value = 2;
+}
+
+// ErrorDetailDouble
+message ErrorDetailDouble {
+  //
+  string field = 1;
+  //
+  double value = 2;
+}
+
+// ErrorDetailTimestamp
+message ErrorDetailTimestamp {
+  //
+  string field = 1;
+  //
+  google.protobuf.Timestamp value = 2;
+}
+
