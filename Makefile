@@ -5,6 +5,9 @@ build:
 	go build -o bin/migrate cmd/migrate/main.go
 	go build -o bin/server cmd/server/main.go
 
+run-pretty:
+	go run cmd/server/main.go start 2>&1 > /dev/null | jq -r ".,.stacktrace"
+
 gen-error:
 	go run cmd/errors/main.go generate
 

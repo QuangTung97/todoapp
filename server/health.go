@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"todoapp-rpc/rpc/health/v1"
+	"todoapp/pkg/errors"
 )
 
 // HealthServer for health check
@@ -12,10 +13,10 @@ type HealthServer struct {
 
 // Live ...
 func (s *HealthServer) Live(context.Context, *health.LiveRequest) (*health.LiveResponse, error) {
-	return &health.LiveResponse{}, nil
+	return nil, errors.General.UnknownValue.Err()
 }
 
 // Ready ...
 func (s *HealthServer) Ready(context.Context, *health.ReadyRequest) (*health.ReadyResponse, error) {
-	return &health.ReadyResponse{}, nil
+	return nil, errors.General.UnknownValue.WithMin(223).Err()
 }

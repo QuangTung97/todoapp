@@ -21,6 +21,11 @@ func NewErrGeneralUnknown() *ErrGeneralUnknown {
 	}
 }
 
+// Err ...
+func (e *ErrGeneralUnknown) Err() error {
+	return (*liberrors.Error)(e)
+}
+
 // ErrGeneralUnknownValue ...
 type ErrGeneralUnknownValue liberrors.Error
 
@@ -31,6 +36,11 @@ func NewErrGeneralUnknownValue() *ErrGeneralUnknownValue {
 		Code:      "0201",
 		Message:   "Unknown value",
 	}
+}
+
+// Err ...
+func (e *ErrGeneralUnknownValue) Err() error {
+	return (*liberrors.Error)(e)
 }
 
 // WithMin ...
@@ -63,6 +73,11 @@ func NewErrTodoDeadlineExceededCommand() *ErrTodoDeadlineExceededCommand {
 	}
 }
 
+// Err ...
+func (e *ErrTodoDeadlineExceededCommand) Err() error {
+	return (*liberrors.Error)(e)
+}
+
 // WithMsg ...
 func (e *ErrTodoDeadlineExceededCommand) WithMsg(value string) *ErrTodoDeadlineExceededCommand {
 	err := (*liberrors.Error)(e)
@@ -85,6 +100,11 @@ func NewErrTodoInvalidArgument() *ErrTodoInvalidArgument {
 		Code:      "03",
 		Message:   "Not found todo",
 	}
+}
+
+// Err ...
+func (e *ErrTodoInvalidArgument) Err() error {
+	return (*liberrors.Error)(e)
 }
 
 // TodoTag ...

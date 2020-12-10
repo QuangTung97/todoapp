@@ -77,6 +77,11 @@ func NewErrGeneralNotFound() *ErrGeneralNotFound {
 		Message:   "Not found",
 	}
 }
+
+// Err ...
+func (e *ErrGeneralNotFound) Err() error {
+	return (*liberrors.Error)(e)
+}
 `,
 		},
 		{
@@ -105,6 +110,11 @@ func NewErrGeneralUnknown() *ErrGeneralUnknown {
 		Code:      "0302",
 		Message:   "Unknown",
 	}
+}
+
+// Err ...
+func (e *ErrGeneralUnknown) Err() error {
+	return (*liberrors.Error)(e)
 }
 
 // WithStartedTime ...
@@ -166,6 +176,11 @@ func NewErrAuthNotFound() *ErrAuthNotFound {
 		Code:      "0903",
 		Message:   "Not found",
 	}
+}
+
+// Err ...
+func (e *ErrAuthNotFound) Err() error {
+	return (*liberrors.Error)(e)
 }
 
 // AuthTag ...

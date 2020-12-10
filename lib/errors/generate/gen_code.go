@@ -26,6 +26,19 @@ func New%s() *%s {
 	return err
 }
 
+func generateErrFunc(errName string, writer io.Writer) error {
+	code := `
+// Err ...
+func (e *%s) Err() error {
+	return (*liberrors.Error)(e)
+}
+`
+	code = strings.TrimSpace(code)
+	code = fmt.Sprintf(code, errName)
+	_, err := writer.Write([]byte(code))
+	return err
+}
+
 func generateWithMethod(errName string, field string, fieldType string, writer io.Writer) error {
 	method := "With" + strings.Title(field)
 
@@ -46,18 +59,23 @@ func generateErrorEntry(tagName string, e errorEntry, writer io.Writer) error {
 	name := strings.Title(e.name)
 	name = "Err" + tagName + name
 	typeCode := fmt.Sprintf("// %s ...\ntype %s liberrors.Error", name, name)
-	_, err := writer.Write([]byte(typeCode))
-	if err != nil {
+	if _, err := writer.Write([]byte(typeCode)); err != nil {
 		return err
 	}
 
-	_, err = writer.Write([]byte("\n\n"))
-	if err != nil {
+	if _, err := writer.Write([]byte("\n\n")); err != nil {
 		return err
 	}
 
-	err = generateNewErrorFunc(name, e.info, writer)
-	if err != nil {
+	if err := generateNewErrorFunc(name, e.info, writer); err != nil {
+		return err
+	}
+
+	if _, err := writer.Write([]byte("\n\n")); err != nil {
+		return err
+	}
+
+	if err := generateErrFunc(name, writer); err != nil {
 		return err
 	}
 
