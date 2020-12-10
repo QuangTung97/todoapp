@@ -1,4 +1,4 @@
-.PHONY: build gen-error next-error-code lint test
+.PHONY: build gen-error next-error-code lint test install-tools
 
 build:
 	go build -o bin/errors cmd/errors/main.go
@@ -17,3 +17,7 @@ lint:
 
 test:
 	go test -v ./...
+
+install-tools:
+	go install github.com/kisielk/errcheck
+	go install golang.org/x/lint/golint

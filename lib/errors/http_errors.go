@@ -31,7 +31,6 @@ type errorBodyWithDetails struct {
 }
 
 func statusToErrorBody(s *status.Status) interface{} {
-
 	domainErr, ok := FromRPCStatus(s)
 	if !ok {
 		return errorBody{
