@@ -12,19 +12,58 @@ func lowerCaseFirstLetter(s string) string {
 	return strings.ToLower(s[:1]) + s[1:]
 }
 
+var unsupportedFields = map[string]struct{}{
+	"code": {},
+}
+
+var supportedTypes = map[string]struct{}{
+	"bool":      {},
+	"string":    {},
+	"int64":     {},
+	"float64":   {},
+	"time.Time": {},
+}
+
+func validateDetails(details map[string]string) error {
+	for field, fieldType := range details {
+		if len(field) == 0 {
+			return fmt.Errorf("detail field must not be empty")
+		}
+
+		_, existed := unsupportedFields[field]
+		if existed {
+			return fmt.Errorf("field name 'code' is unsupported")
+		}
+
+		_, ok := supportedTypes[fieldType]
+		if !ok {
+			return fmt.Errorf("only types: bool, string, int64, float64 and time.Time are supported")
+		}
+	}
+	return nil
+}
+
 func validateError(name string, info ErrorInfo) error {
 	if info.RPCStatus <= 0 || info.RPCStatus > 16 {
 		return fmt.Errorf("invalid rpc status '%d'", info.RPCStatus)
 	}
+
 	rpcCode := fmt.Sprintf("%02d", info.RPCStatus)
 	if !strings.HasPrefix(info.Code, rpcCode) {
 		return fmt.Errorf("code must be prefix with '%s'", rpcCode)
 	}
+
 	statusCode := codes.Code(info.RPCStatus).String()
 	statusCode = lowerCaseFirstLetter(statusCode)
 	if !strings.HasPrefix(name, statusCode) {
 		return fmt.Errorf("error name must prefix with '%s'", statusCode)
 	}
+
+	err := validateDetails(info.Details)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

@@ -47,6 +47,42 @@ func TestValidateError(t *testing.T) {
 			err: fmt.Errorf("error name must prefix with 'unauthenticated'"),
 		},
 		{
+			name:      "empty detail field",
+			errorName: "unauthenticated",
+			info: ErrorInfo{
+				RPCStatus: 16,
+				Code:      "1600",
+				Details: map[string]string{
+					"": "int64",
+				},
+			},
+			err: fmt.Errorf("detail field must not be empty"),
+		},
+		{
+			name:      "code field",
+			errorName: "unauthenticated",
+			info: ErrorInfo{
+				RPCStatus: 16,
+				Code:      "1600",
+				Details: map[string]string{
+					"code": "string",
+				},
+			},
+			err: fmt.Errorf("field name 'code' is unsupported"),
+		},
+		{
+			name:      "unsupported detail type",
+			errorName: "unauthenticated",
+			info: ErrorInfo{
+				RPCStatus: 16,
+				Code:      "1600",
+				Details: map[string]string{
+					"max": "int",
+				},
+			},
+			err: fmt.Errorf("only types: bool, string, int64, float64 and time.Time are supported"),
+		},
+		{
 			name:      "ok",
 			errorName: "unauthenticatedPasswordIncorrect",
 			info: ErrorInfo{

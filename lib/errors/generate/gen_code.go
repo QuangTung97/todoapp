@@ -146,6 +146,19 @@ func generateErrorTag(tag errorTagEntry, writer io.Writer) error {
 	return nil
 }
 
+func checkTimePackageIsRequired(tags map[string]ErrorMap) bool {
+	for _, errMap := range tags {
+		for _, info := range errMap {
+			for _, fieldType := range info.Details {
+				if fieldType == "time.Time" {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 // Generate generates file from yml
 func Generate(tags map[string]ErrorMap, output io.Writer) error {
 	var buf bytes.Buffer
@@ -158,6 +171,18 @@ func Generate(tags map[string]ErrorMap, output io.Writer) error {
 	_, err = buf.Write([]byte(imports))
 	if err != nil {
 		return err
+	}
+
+	if checkTimePackageIsRequired(tags) {
+		importTime := `
+
+import (
+	"time"
+)`
+		_, err = buf.Write([]byte(importTime))
+		if err != nil {
+			return err
+		}
 	}
 
 	tagList := tagMapToList(tags)

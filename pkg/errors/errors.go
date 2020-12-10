@@ -5,6 +5,10 @@ import (
 	liberrors "todoapp/lib/errors"
 )
 
+import (
+	"time"
+)
+
 // ErrGeneralUnknown ...
 type ErrGeneralUnknown liberrors.Error
 
@@ -63,6 +67,12 @@ func NewErrTodoDeadlineExceededCommand() *ErrTodoDeadlineExceededCommand {
 func (e *ErrTodoDeadlineExceededCommand) WithMsg(value string) *ErrTodoDeadlineExceededCommand {
 	err := (*liberrors.Error)(e)
 	return (*ErrTodoDeadlineExceededCommand)(err.WithDetail("msg", value))
+}
+
+// WithStartedAt ...
+func (e *ErrTodoDeadlineExceededCommand) WithStartedAt(value time.Time) *ErrTodoDeadlineExceededCommand {
+	err := (*liberrors.Error)(e)
+	return (*ErrTodoDeadlineExceededCommand)(err.WithDetail("startedAt", value))
 }
 
 // ErrTodoInvalidArgument ...
