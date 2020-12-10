@@ -17,4 +17,7 @@ require (
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b
 	google.golang.org/grpc v1.34.0
 	gopkg.in/yaml.v2 v2.4.0
+	todoapp-rpc v0.0.0
 )
+
+replace todoapp-rpc v0.0.0 => ../todoapp-rpc/

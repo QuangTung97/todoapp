@@ -3,6 +3,7 @@
 build:
 	go build -o bin/errors cmd/errors/main.go
 	go build -o bin/migrate cmd/migrate/main.go
+	go build -o bin/server cmd/server/main.go
 
 gen-error:
 	go run cmd/errors/main.go generate

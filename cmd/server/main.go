@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 	"net"
 	"net/http"
@@ -16,9 +18,47 @@ import (
 	"todoapp/lib/errors"
 	"todoapp/lib/mysql"
 	"todoapp/server"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 func main() {
+	rootCmd := &cobra.Command{
+		Use: "server",
+	}
+
+	rootCmd.AddCommand(
+		startServerCommand(),
+		checkSQLCommand(),
+	)
+
+	err := rootCmd.Execute()
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func startServerCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "start",
+		Short: "start the server",
+		Run: func(cmd *cobra.Command, args []string) {
+			startServer()
+		},
+	}
+}
+
+func checkSQLCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "check-sql",
+		Short: "check the syntax & columns of all queries",
+		Run: func(cmd *cobra.Command, args []string) {
+
+		},
+	}
+}
+
+func startServer() {
 	conf := config.Load()
 	db := mysql.MustConnect(conf.MySQL)
 	root := server.NewRoot(db)
@@ -55,7 +95,7 @@ func main() {
 		defer wg.Done()
 
 		err := httpServer.ListenAndServe()
-		if err != nil {
+		if err != nil && err != http.ErrServerClosed {
 			panic(err)
 		}
 	}()
@@ -93,4 +133,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	fmt.Println("Graceful Shutdown Completed")
 }
