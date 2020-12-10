@@ -4,11 +4,11 @@ import (
 	"context"
 	stderrors "errors"
 	"fmt"
+	"github.com/golang/protobuf/proto"
+	"google.golang.org/grpc/status"
 	"time"
 
-	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
-	"github.com/gogo/status"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 )
@@ -103,16 +103,18 @@ func (e *Error) ToRPCError() error {
 
 	var details []proto.Message
 
-	details = append(details, &ErrorDetailString{
+	detailCode := &ErrorDetailString{
 		Field: codeDetailField,
 		Value: e.Code,
-	})
+	}
+	details = append(details, detailCode)
 
 	for field, value := range e.Details {
 		detail, err := fieldValueToDetail(field, value)
 		if err != nil {
 			return err
 		}
+
 		details = append(details, detail)
 	}
 
@@ -122,6 +124,15 @@ func (e *Error) ToRPCError() error {
 	}
 
 	return st.Err()
+}
+
+// FromRPCError converts error gRPC to Error
+func FromRPCError(err error) (*Error, bool) {
+	st, ok := status.FromError(err)
+	if !ok {
+		return nil, false
+	}
+	return FromRPCStatus(st)
 }
 
 // FromRPCStatus converts status to Error
@@ -159,7 +170,7 @@ func FromRPCStatus(st *status.Status) (*Error, bool) {
 
 // UnaryServerInterceptor converts domain error to grpc status error
 func UnaryServerInterceptor(
-	ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler,
+	ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler,
 ) (interface{}, error) {
 	resp, err := handler(ctx, req)
 	if err != nil {

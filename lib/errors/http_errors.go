@@ -3,11 +3,11 @@ package errors
 import (
 	"context"
 	"fmt"
+	"google.golang.org/grpc/status"
 	"io"
 	"net/http"
 	"net/textproto"
 
-	"github.com/gogo/status"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/grpclog"
