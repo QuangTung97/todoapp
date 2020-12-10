@@ -44,7 +44,7 @@ func generateCmd(errorTags map[string]generate.ErrorMap) *cobra.Command {
 
 func nextErrorCodeCmd(errorTags map[string]generate.ErrorMap) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "next-code",
+		Use:   "next-code [rpc-status]",
 		Short: "find the next error code for rpc-status",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
