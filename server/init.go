@@ -2,25 +2,61 @@ package server
 
 import (
 	"context"
+	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
+	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
+	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/jmoiron/sqlx"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"todoapp-rpc/rpc/health/v1"
+	"todoapp/config"
+	"todoapp/lib/errors"
+	"todoapp/lib/mysql"
 )
 
 // Root struct for whole app
 type Root struct {
-	db *sqlx.DB
+	db     *sqlx.DB
+	logger *zap.Logger
 
 	health *HealthServer
 }
 
 // NewRoot initializes gRPC servers
-func NewRoot(db *sqlx.DB) *Root {
+func NewRoot(conf config.Config) *Root {
+	logger, err := zap.NewProduction()
+	if err != nil {
+		panic(err)
+	}
+
+	db := mysql.MustConnect(conf.MySQL)
+
 	return &Root{
 		db:     db,
+		logger: logger,
 		health: &HealthServer{},
 	}
+}
+
+// UnaryInterceptor creates unary server interceptor
+func (r *Root) UnaryInterceptor() grpc.ServerOption {
+	return grpc.ChainUnaryInterceptor(
+		grpc_ctxtags.UnaryServerInterceptor(),
+		grpc_zap.UnaryServerInterceptor(r.logger),
+		grpc_recovery.UnaryServerInterceptor(),
+		errors.UnaryServerInterceptor,
+		// TODO Payload Interceptors
+	)
+}
+
+// StreamInterceptor creates stream server interceptor
+func (r *Root) StreamInterceptor() grpc.ServerOption {
+	return grpc.ChainStreamInterceptor(
+		grpc_ctxtags.StreamServerInterceptor(),
+		grpc_zap.StreamServerInterceptor(r.logger),
+		grpc_recovery.StreamServerInterceptor(),
+	)
 }
 
 // Register register gRPC & gateway servers
@@ -29,4 +65,13 @@ func (r *Root) Register(ctx context.Context, server *grpc.Server, mux *runtime.S
 	if err := health.RegisterHealthServiceHandlerFromEndpoint(ctx, mux, endpoint, opts); err != nil {
 		panic(err)
 	}
+}
+
+// Shutdown for graceful shutdown
+func (r *Root) Shutdown() {
+	if err := r.db.Close(); err != nil {
+		panic(err)
+	}
+
+	_ = r.logger.Sync()
 }

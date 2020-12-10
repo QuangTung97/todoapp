@@ -16,7 +16,6 @@ import (
 	"time"
 	"todoapp/config"
 	"todoapp/lib/errors"
-	"todoapp/lib/mysql"
 	"todoapp/server"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -51,22 +50,23 @@ func startServerCommand() *cobra.Command {
 func checkSQLCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "check-sql",
-		Short: "check the syntax & columns of all queries",
+		Short: "check the syntax of all SQL queries",
 		Run: func(cmd *cobra.Command, args []string) {
-
 		},
 	}
 }
 
 func startServer() {
 	conf := config.Load()
-	db := mysql.MustConnect(conf.MySQL)
-	root := server.NewRoot(db)
+	root := server.NewRoot(conf)
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		root.UnaryInterceptor(),
+		root.StreamInterceptor(),
+	)
 
 	mux := runtime.NewServeMux(
 		runtime.WithProtoErrorHandler(errors.CustomHTTPError),
@@ -129,10 +129,7 @@ func startServer() {
 		panic(err)
 	}
 
-	err = db.Close()
-	if err != nil {
-		panic(err)
-	}
+	root.Shutdown()
 
 	fmt.Println("Graceful Shutdown Completed")
 }
