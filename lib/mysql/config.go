@@ -59,9 +59,6 @@ func (c Config) DSN() string {
 func MustConnect(conf Config) *sqlx.DB {
 	db := sqlx.MustConnect("mysql", conf.DSN())
 
-	fmt.Println("MaxOpenConns:", conf.MaxOpenConns)
-	fmt.Println("MaxIdleConns:", conf.MaxIdleConns)
-
 	db.SetMaxOpenConns(conf.MaxOpenConns)
 	db.SetMaxIdleConns(conf.MaxIdleConns)
 	return db

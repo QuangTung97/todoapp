@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"todoapp-rpc/rpc/health/v1"
+	"todoapp/lib/dblib"
 	"todoapp/pkg/errors"
 )
 
@@ -10,6 +11,19 @@ import (
 type HealthServer struct {
 	health.UnimplementedHealthServiceServer
 }
+
+var _ = dblib.NewQuery(`
+SELECT * FROM tung
+`)
+
+var _ = dblib.NewQuery(`
+SELECT * FROM testin WHERE id = ?
+`)
+
+var _ = dblib.NewNamedQuery(`
+INSERT INTO testing (id, version, value)
+VALUES (:id, :version, :value)
+`)
 
 // Live ...
 func (s *HealthServer) Live(context.Context, *health.LiveRequest) (*health.LiveResponse, error) {

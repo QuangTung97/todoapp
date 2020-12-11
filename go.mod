@@ -11,7 +11,9 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/kisielk/errcheck v1.2.0
+	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/prometheus/client_golang v0.9.3
+	github.com/sahilm/fuzzy v0.1.0
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/viper v1.7.0
 	github.com/stretchr/testify v1.5.1

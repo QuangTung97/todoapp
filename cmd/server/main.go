@@ -11,11 +11,14 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
 	"todoapp/config"
+	"todoapp/lib/dblib"
 	"todoapp/lib/errors"
+	"todoapp/lib/mysql"
 	"todoapp/server"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -49,9 +52,24 @@ func startServerCommand() *cobra.Command {
 
 func checkSQLCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "check-sql",
+		Use:   "check-sql [filters]",
 		Short: "check the syntax of all SQL queries",
 		Run: func(cmd *cobra.Command, args []string) {
+			conf := config.Load()
+			db := mysql.MustConnect(conf.MySQL)
+
+			if len(args) > 0 {
+				filter := strings.Join(args, " ")
+				dblib.CheckQueries(db, dblib.CheckOptions{
+					Filter:       filter,
+					EnablePrint:  true,
+					DisableColor: false,
+				})
+			} else {
+				dblib.CheckQueries(db, dblib.CheckOptions{
+					DisableColor: false,
+				})
+			}
 		},
 	}
 }

@@ -1,4 +1,4 @@
-.PHONY: build gen-error next-error-code lint test install-tools migrate-up migrate-down-1
+.PHONY: build gen-error next-error-code lint test check-sql install-tools migrate-up migrate-down-1
 
 build:
 	go build -o bin/errors cmd/errors/main.go
@@ -22,6 +22,9 @@ lint:
 
 test:
 	go test -v ./...
+
+check-sql:
+	go run cmd/server/main.go check-sql
 
 install-tools:
 	go install github.com/kisielk/errcheck
