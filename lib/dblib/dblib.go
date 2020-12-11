@@ -176,6 +176,11 @@ type CheckOptions struct {
 	DisableColor bool
 }
 
+// FinishRegisterQueries prevents NewQuery / NewNamedQuery from using inside functions
+func FinishRegisterQueries() {
+	atomic.StoreInt32(&disabledRegistering, 1)
+}
+
 // CheckQueries validates syntax of all registered queries
 func CheckQueries(db *sqlx.DB, opts CheckOptions) {
 	colorRed := ColorRed

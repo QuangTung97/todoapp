@@ -25,6 +25,8 @@ import (
 )
 
 func main() {
+	dblib.FinishRegisterQueries()
+
 	rootCmd := &cobra.Command{
 		Use: "server",
 	}

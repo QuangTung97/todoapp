@@ -17,7 +17,7 @@ SELECT * FROM tung
 `)
 
 var _ = dblib.NewQuery(`
-SELECT * FROM testin WHERE id = ?
+SELECT * FROM testing WHERE id = ?
 `)
 
 var _ = dblib.NewNamedQuery(`
