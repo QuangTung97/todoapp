@@ -150,6 +150,4 @@ func startServer() {
 	}
 
 	root.Shutdown()
-
-	fmt.Println("Graceful Shutdown Completed")
 }

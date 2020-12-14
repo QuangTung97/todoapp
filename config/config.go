@@ -3,12 +3,14 @@ package config
 import (
 	"fmt"
 	"github.com/spf13/viper"
+	"todoapp/lib/log"
 	"todoapp/lib/mysql"
 )
 
 // Config for configuring whole app
 type Config struct {
 	Server Server       `mapstructure:"server"`
+	Log    log.Config   `mapstructure:"log"`
 	MySQL  mysql.Config `mapstructure:"mysql"`
 }
 

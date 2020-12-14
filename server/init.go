@@ -12,11 +12,13 @@ import (
 	"todoapp-rpc/rpc/health/v1"
 	"todoapp/config"
 	"todoapp/lib/errors"
+	"todoapp/lib/log"
 	"todoapp/lib/mysql"
 )
 
 // Root struct for whole app
 type Root struct {
+	conf   config.Config
 	db     *sqlx.DB
 	logger *zap.Logger
 
@@ -25,18 +27,19 @@ type Root struct {
 
 // NewRoot initializes gRPC servers
 func NewRoot(conf config.Config) *Root {
-	logger, err := zap.NewProduction()
-	if err != nil {
-		panic(err)
-	}
-
+	logger := log.NewLogger(conf.Log)
 	db := mysql.MustConnect(conf.MySQL)
 
 	return &Root{
+		conf:   conf,
 		db:     db,
 		logger: logger,
 		health: &HealthServer{},
 	}
+}
+
+func deciderAllMethods(ctx context.Context, fullMethodName string, servingObject interface{}) bool {
+	return true
 }
 
 // UnaryInterceptor creates unary server interceptor
@@ -45,8 +48,8 @@ func (r *Root) UnaryInterceptor() grpc.ServerOption {
 		grpc_ctxtags.UnaryServerInterceptor(),
 		grpc_zap.UnaryServerInterceptor(r.logger),
 		grpc_recovery.UnaryServerInterceptor(),
+		log.PayloadUnaryServerInterceptor(r.logger, deciderAllMethods, r.conf.Log.MaskedFields...),
 		errors.UnaryServerInterceptor,
-		// TODO Payload Interceptors
 	)
 }
 
@@ -73,5 +76,6 @@ func (r *Root) Shutdown() {
 		panic(err)
 	}
 
+	r.logger.Info("Graceful shutdown completed")
 	_ = r.logger.Sync()
 }
