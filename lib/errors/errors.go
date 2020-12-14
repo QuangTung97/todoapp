@@ -5,10 +5,10 @@ import (
 	stderrors "errors"
 	"fmt"
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"google.golang.org/grpc/status"
 	"time"
 
-	"github.com/gogo/protobuf/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 )
@@ -63,7 +63,7 @@ func fieldValueToDetail(field string, value interface{}) (proto.Message, error) 
 		return &ErrorDetailDouble{Field: field, Value: v}, nil
 
 	case time.Time:
-		t, _ := types.TimestampProto(v)
+		t, _ := ptypes.TimestampProto(v)
 		return &ErrorDetailTimestamp{Field: field, Value: t}, nil
 
 	default:
@@ -86,7 +86,7 @@ func detailToFieldValue(detail interface{}) (string, interface{}, error) {
 		return d.Field, d.Value, nil
 
 	case *ErrorDetailTimestamp:
-		t, err := types.TimestampFromProto(d.Value)
+		t, err := ptypes.Timestamp(d.Value)
 		if err != nil {
 			return "", nil, err
 		}

@@ -8,16 +8,9 @@ import (
 	"net/http"
 	"net/textproto"
 
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	"google.golang.org/grpc/codes"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc/grpclog"
 )
-
-// CustomContentTypeMarshaler for customize content-type
-type CustomContentTypeMarshaler interface {
-	// ContentTypeFromMessage returns the Content-Type this marshaler produces from the provided message
-	ContentTypeFromMessage(v interface{}) string
-}
 
 type errorBody struct {
 	Code    string `json:"code"`
@@ -55,33 +48,24 @@ func statusToErrorBody(s *status.Status) interface{} {
 
 // CustomHTTPError for customizing error returning of gRPC gateway
 func CustomHTTPError(
-	ctx context.Context, mux *runtime.ServeMux, marshaler runtime.Marshaler,
+	ctx context.Context, mux *runtime.ServeMux, marshaller runtime.Marshaler,
 	w http.ResponseWriter, _ *http.Request, err error,
 ) {
 	const fallback = `{"error": "failed to marshal error message"}`
 
-	s, ok := status.FromError(err)
-	if !ok {
-		s = status.New(codes.Unknown, err.Error())
-	}
+	s := status.Convert(err)
+	pb := s.Proto()
 
 	w.Header().Del("Trailer")
 
-	contentType := marshaler.ContentType()
-	// Check marshaler on run time in order to keep backwards compatibility
-	// An interface param needs to be added to the ContentType() function on
-	// the Marshal interface to be able to remove this check
-	pb := s.Proto()
-	if typeMarshaler, ok := marshaler.(CustomContentTypeMarshaler); ok {
-		contentType = typeMarshaler.ContentTypeFromMessage(pb)
-	}
+	contentType := marshaller.ContentType(pb)
 	w.Header().Set("Content-Type", contentType)
 
 	body := statusToErrorBody(s)
 
-	buf, merr := marshaler.Marshal(body)
+	buf, merr := marshaller.Marshal(body)
 	if merr != nil {
-		grpclog.Infof("Failed to marshal error message %q: %v", body, merr)
+		grpclog.Infof("Failed to marshal error message %q: %v", s, merr)
 		w.WriteHeader(http.StatusInternalServerError)
 		if _, err := io.WriteString(w, fallback); err != nil {
 			grpclog.Infof("Failed to write response: %v", err)

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
@@ -90,8 +90,8 @@ func startServer() {
 	)
 
 	mux := runtime.NewServeMux(
-		runtime.WithProtoErrorHandler(errors.CustomHTTPError),
-		runtime.WithMarshalerOption(runtime.MIMEWildcard, &runtime.JSONPb{EmitDefaults: true}),
+		runtime.WithErrorHandler(errors.CustomHTTPError),
+		runtime.WithMarshalerOption(runtime.MIMEWildcard, &runtime.JSONPb{}),
 	)
 
 	ctx := context.Background()
