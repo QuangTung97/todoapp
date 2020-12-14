@@ -10,12 +10,13 @@ import (
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
-	"todoapp-rpc/rpc/health/v1"
+	health_rpc "todoapp-rpc/rpc/health/v1"
 	todoapp_rpc "todoapp-rpc/rpc/todoapp/v1"
 	"todoapp/config"
 	"todoapp/lib/errors"
 	"todoapp/lib/log"
 	"todoapp/lib/mysql"
+	"todoapp/todoapp"
 	todoapp_server "todoapp/todoapp/server"
 )
 
@@ -34,7 +35,7 @@ func NewRoot(conf config.Config) *Root {
 	logger := log.NewLogger(conf.Log)
 	db := mysql.MustConnect(conf.MySQL)
 
-	todoappServer := todoapp_server.NewServer()
+	todoappServer := todoapp.InitServer(db)
 
 	return &Root{
 		conf:   conf,
@@ -74,8 +75,8 @@ func (r *Root) StreamInterceptor() grpc.ServerOption {
 
 // Register register gRPC & gateway servers
 func (r *Root) Register(ctx context.Context, server *grpc.Server, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) {
-	health.RegisterHealthServiceServer(server, r.health)
-	if err := health.RegisterHealthServiceHandlerFromEndpoint(ctx, mux, endpoint, opts); err != nil {
+	health_rpc.RegisterHealthServiceServer(server, r.health)
+	if err := health_rpc.RegisterHealthServiceHandlerFromEndpoint(ctx, mux, endpoint, opts); err != nil {
 		panic(err)
 	}
 

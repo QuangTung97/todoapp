@@ -153,5 +153,7 @@ func startServer() {
 		panic(err)
 	}
 
+	wg.Done()
+
 	root.Shutdown()
 }

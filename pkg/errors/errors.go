@@ -5,9 +5,22 @@ import (
 	liberrors "todoapp/lib/errors"
 )
 
-import (
-	"time"
-)
+// ErrGeneralInternalErrorAccessingDatabase ...
+type ErrGeneralInternalErrorAccessingDatabase liberrors.Error
+
+// NewErrGeneralInternalErrorAccessingDatabase ...
+func NewErrGeneralInternalErrorAccessingDatabase() *ErrGeneralInternalErrorAccessingDatabase {
+	return &ErrGeneralInternalErrorAccessingDatabase{
+		RPCStatus: 13,
+		Code:      "1301",
+		Message:   "Error accessing database",
+	}
+}
+
+// Err ...
+func (e *ErrGeneralInternalErrorAccessingDatabase) Err() error {
+	return (*liberrors.Error)(e)
+}
 
 // ErrGeneralUnknown ...
 type ErrGeneralUnknown liberrors.Error
@@ -16,7 +29,7 @@ type ErrGeneralUnknown liberrors.Error
 func NewErrGeneralUnknown() *ErrGeneralUnknown {
 	return &ErrGeneralUnknown{
 		RPCStatus: 2,
-		Code:      "0200",
+		Code:      "02",
 		Message:   "Unknown",
 	}
 }
@@ -26,101 +39,41 @@ func (e *ErrGeneralUnknown) Err() error {
 	return (*liberrors.Error)(e)
 }
 
-// ErrGeneralUnknownValue ...
-type ErrGeneralUnknownValue liberrors.Error
-
-// NewErrGeneralUnknownValue ...
-func NewErrGeneralUnknownValue() *ErrGeneralUnknownValue {
-	return &ErrGeneralUnknownValue{
-		RPCStatus: 2,
-		Code:      "0201",
-		Message:   "Unknown value",
-	}
-}
-
-// Err ...
-func (e *ErrGeneralUnknownValue) Err() error {
-	return (*liberrors.Error)(e)
-}
-
-// WithMaxValue ...
-func (e *ErrGeneralUnknownValue) WithMaxValue(value string) *ErrGeneralUnknownValue {
-	err := (*liberrors.Error)(e)
-	return (*ErrGeneralUnknownValue)(err.WithDetail("maxValue", value))
-}
-
-// WithMin ...
-func (e *ErrGeneralUnknownValue) WithMin(value int64) *ErrGeneralUnknownValue {
-	err := (*liberrors.Error)(e)
-	return (*ErrGeneralUnknownValue)(err.WithDetail("min", value))
-}
-
 // GeneralTag ...
 type GeneralTag struct {
-	Unknown      *ErrGeneralUnknown
-	UnknownValue *ErrGeneralUnknownValue
+	InternalErrorAccessingDatabase *ErrGeneralInternalErrorAccessingDatabase
+	Unknown                        *ErrGeneralUnknown
 }
 
 // General ...
 var General = &GeneralTag{
-	Unknown:      NewErrGeneralUnknown(),
-	UnknownValue: NewErrGeneralUnknownValue(),
+	InternalErrorAccessingDatabase: NewErrGeneralInternalErrorAccessingDatabase(),
+	Unknown:                        NewErrGeneralUnknown(),
 }
 
-// ErrTodoDeadlineExceededCommand ...
-type ErrTodoDeadlineExceededCommand liberrors.Error
+// ErrTodoNotFoundTodo ...
+type ErrTodoNotFoundTodo liberrors.Error
 
-// NewErrTodoDeadlineExceededCommand ...
-func NewErrTodoDeadlineExceededCommand() *ErrTodoDeadlineExceededCommand {
-	return &ErrTodoDeadlineExceededCommand{
-		RPCStatus: 4,
-		Code:      "04",
-		Message:   "Deadline exceeded",
-	}
-}
-
-// Err ...
-func (e *ErrTodoDeadlineExceededCommand) Err() error {
-	return (*liberrors.Error)(e)
-}
-
-// WithMsg ...
-func (e *ErrTodoDeadlineExceededCommand) WithMsg(value string) *ErrTodoDeadlineExceededCommand {
-	err := (*liberrors.Error)(e)
-	return (*ErrTodoDeadlineExceededCommand)(err.WithDetail("msg", value))
-}
-
-// WithStartedAt ...
-func (e *ErrTodoDeadlineExceededCommand) WithStartedAt(value time.Time) *ErrTodoDeadlineExceededCommand {
-	err := (*liberrors.Error)(e)
-	return (*ErrTodoDeadlineExceededCommand)(err.WithDetail("startedAt", value))
-}
-
-// ErrTodoInvalidArgument ...
-type ErrTodoInvalidArgument liberrors.Error
-
-// NewErrTodoInvalidArgument ...
-func NewErrTodoInvalidArgument() *ErrTodoInvalidArgument {
-	return &ErrTodoInvalidArgument{
-		RPCStatus: 3,
-		Code:      "03",
+// NewErrTodoNotFoundTodo ...
+func NewErrTodoNotFoundTodo() *ErrTodoNotFoundTodo {
+	return &ErrTodoNotFoundTodo{
+		RPCStatus: 5,
+		Code:      "0501",
 		Message:   "Not found todo",
 	}
 }
 
 // Err ...
-func (e *ErrTodoInvalidArgument) Err() error {
+func (e *ErrTodoNotFoundTodo) Err() error {
 	return (*liberrors.Error)(e)
 }
 
 // TodoTag ...
 type TodoTag struct {
-	DeadlineExceededCommand *ErrTodoDeadlineExceededCommand
-	InvalidArgument         *ErrTodoInvalidArgument
+	NotFoundTodo *ErrTodoNotFoundTodo
 }
 
 // Todo ...
 var Todo = &TodoTag{
-	DeadlineExceededCommand: NewErrTodoDeadlineExceededCommand(),
-	InvalidArgument:         NewErrTodoInvalidArgument(),
+	NotFoundTodo: NewErrTodoNotFoundTodo(),
 }

@@ -1,1 +1,3 @@
-DROP TABLE tung;
+DROP TABLE todo_items;
+
+DROP TABLE todos;

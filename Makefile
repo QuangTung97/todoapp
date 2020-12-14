@@ -1,4 +1,4 @@
-.PHONY: build gen-error next-error-code lint test check-sql install-tools migrate-up migrate-down-1
+.PHONY: build gen-error next-error-code lint test check-sql install-tools migrate-up migrate-down-1 mock-gen
 
 build:
 	go build -o bin/errors cmd/errors/main.go
@@ -35,3 +35,6 @@ migrate-up:
 
 migrate-down-1:
 	go run cmd/migrate/main.go down 1
+
+mock-gen:
+	go generate ./...
