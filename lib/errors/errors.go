@@ -184,7 +184,7 @@ func UnaryServerInterceptor(
 			return nil, st.Err()
 		}
 
-		st = status.New(codes.Internal, err.Error())
+		st = status.New(codes.Unknown, err.Error())
 		return nil, st.Err()
 	}
 	return resp, nil

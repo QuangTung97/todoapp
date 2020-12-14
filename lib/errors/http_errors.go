@@ -27,7 +27,7 @@ func statusToErrorBody(s *status.Status) interface{} {
 	domainErr, ok := FromRPCStatus(s)
 	if !ok {
 		return errorBody{
-			Code:    "13",
+			Code:    fmt.Sprintf("%02d", s.Code()),
 			Message: s.Message(),
 		}
 	}

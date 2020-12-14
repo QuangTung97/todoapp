@@ -11,10 +11,12 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"todoapp-rpc/rpc/health/v1"
+	todoapp_rpc "todoapp-rpc/rpc/todoapp/v1"
 	"todoapp/config"
 	"todoapp/lib/errors"
 	"todoapp/lib/log"
 	"todoapp/lib/mysql"
+	todoapp_server "todoapp/todoapp/server"
 )
 
 // Root struct for whole app
@@ -23,7 +25,8 @@ type Root struct {
 	db     *sqlx.DB
 	logger *zap.Logger
 
-	health *HealthServer
+	health        *HealthServer
+	todoappServer *todoapp_server.Server
 }
 
 // NewRoot initializes gRPC servers
@@ -31,11 +34,15 @@ func NewRoot(conf config.Config) *Root {
 	logger := log.NewLogger(conf.Log)
 	db := mysql.MustConnect(conf.MySQL)
 
+	todoappServer := todoapp_server.NewServer()
+
 	return &Root{
 		conf:   conf,
 		db:     db,
 		logger: logger,
-		health: &HealthServer{},
+
+		health:        &HealthServer{},
+		todoappServer: todoappServer,
 	}
 }
 
@@ -69,6 +76,11 @@ func (r *Root) StreamInterceptor() grpc.ServerOption {
 func (r *Root) Register(ctx context.Context, server *grpc.Server, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) {
 	health.RegisterHealthServiceServer(server, r.health)
 	if err := health.RegisterHealthServiceHandlerFromEndpoint(ctx, mux, endpoint, opts); err != nil {
+		panic(err)
+	}
+
+	todoapp_rpc.RegisterTodoServiceServer(server, r.todoappServer)
+	if err := todoapp_rpc.RegisterTodoServiceHandlerFromEndpoint(ctx, mux, endpoint, opts); err != nil {
 		panic(err)
 	}
 }
