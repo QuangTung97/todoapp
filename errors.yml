@@ -9,6 +9,7 @@ general:
     message: "Unknown value"
     details:
       min: int64
+      maxValue: string
 
 todo:
   invalidArgument:

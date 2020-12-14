@@ -43,6 +43,12 @@ func (e *ErrGeneralUnknownValue) Err() error {
 	return (*liberrors.Error)(e)
 }
 
+// WithMaxValue ...
+func (e *ErrGeneralUnknownValue) WithMaxValue(value string) *ErrGeneralUnknownValue {
+	err := (*liberrors.Error)(e)
+	return (*ErrGeneralUnknownValue)(err.WithDetail("maxValue", value))
+}
+
 // WithMin ...
 func (e *ErrGeneralUnknownValue) WithMin(value int64) *ErrGeneralUnknownValue {
 	err := (*liberrors.Error)(e)

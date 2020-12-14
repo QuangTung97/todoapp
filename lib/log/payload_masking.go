@@ -1,6 +1,8 @@
 package log
 
-import "reflect"
+import (
+	"reflect"
+)
 
 const maskedValue = "****"
 
@@ -18,7 +20,9 @@ func shallowCopyStruct(e interface{}) (interface{}, bool) {
 
 	n := v.NumField()
 	for i := 0; i < n; i++ {
-		ptr.Field(i).Set(v.Field(i))
+		if ptr.Field(i).CanSet() {
+			ptr.Field(i).Set(v.Field(i))
+		}
 	}
 	return newVal.Interface(), true
 }

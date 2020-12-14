@@ -36,5 +36,5 @@ func (s *HealthServer) Live(context.Context, *health.LiveRequest) (*health.LiveR
 
 // Ready ...
 func (s *HealthServer) Ready(context.Context, *health.ReadyRequest) (*health.ReadyResponse, error) {
-	return nil, errors.General.UnknownValue.WithMin(223).Err()
+	return nil, errors.General.UnknownValue.WithMin(223).WithMaxValue("Quang Tung").Err()
 }
