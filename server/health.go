@@ -20,6 +20,10 @@ var _ = dblib.NewQuery(`
 SELECT * FROM testing WHERE id = ?
 `)
 
+var _ = dblib.NewQuery(`
+DELETE FROM testing WHERE id IN (?)
+`)
+
 var _ = dblib.NewNamedQuery(`
 INSERT INTO testing (id, version, value)
 VALUES (:id, :version, :value)

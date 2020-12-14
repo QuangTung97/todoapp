@@ -5,6 +5,7 @@ import (
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
@@ -46,9 +47,10 @@ func deciderAllMethods(ctx context.Context, fullMethodName string, servingObject
 func (r *Root) UnaryInterceptor() grpc.ServerOption {
 	return grpc.ChainUnaryInterceptor(
 		grpc_ctxtags.UnaryServerInterceptor(),
+		grpc_prometheus.UnaryServerInterceptor,
 		grpc_zap.UnaryServerInterceptor(r.logger),
-		grpc_recovery.UnaryServerInterceptor(),
 		log.PayloadUnaryServerInterceptor(r.logger, deciderAllMethods, r.conf.Log.MaskedFields...),
+		grpc_recovery.UnaryServerInterceptor(),
 		errors.UnaryServerInterceptor,
 	)
 }
@@ -57,6 +59,7 @@ func (r *Root) UnaryInterceptor() grpc.ServerOption {
 func (r *Root) StreamInterceptor() grpc.ServerOption {
 	return grpc.ChainStreamInterceptor(
 		grpc_ctxtags.StreamServerInterceptor(),
+		grpc_prometheus.StreamServerInterceptor,
 		grpc_zap.StreamServerInterceptor(r.logger),
 		grpc_recovery.StreamServerInterceptor(),
 	)

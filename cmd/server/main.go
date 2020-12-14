@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
@@ -93,6 +94,12 @@ func startServer() {
 		runtime.WithMarshalerOption(runtime.MIMEWildcard, &runtime.JSONPb{EmitDefaults: true}),
 	)
 
+	ctx := context.Background()
+	root.Register(ctx, grpcServer, mux, conf.Server.GRPC.String(), []grpc.DialOption{grpc.WithInsecure()})
+
+	grpc_prometheus.EnableHandlingTimeHistogram()
+	grpc_prometheus.Register(grpcServer)
+
 	httpMux := http.NewServeMux()
 	httpMux.Handle("/metrics", promhttp.Handler())
 	httpMux.Handle("/", mux)
@@ -101,9 +108,6 @@ func startServer() {
 		Addr:    conf.Server.HTTP.String(),
 		Handler: httpMux,
 	}
-
-	ctx := context.Background()
-	root.Register(ctx, grpcServer, mux, conf.Server.GRPC.String(), []grpc.DialOption{grpc.WithInsecure()})
 
 	//--------------------------------
 	// Run HTTP & gRPC servers
