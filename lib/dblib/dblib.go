@@ -247,6 +247,8 @@ func CheckQueries(db *sqlx.DB, opts CheckOptions) {
 		fmt.Println(endBar)
 	}
 
+	fmt.Println("Number of queries processed:", len(normalResults)+len(namedResults))
+
 	if exitValue != 0 {
 		os.Exit(exitValue)
 	}
