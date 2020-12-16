@@ -37,7 +37,7 @@ func NewRepository(db *sqlx.DB) *Repository {
 func (r *Repository) Transact(ctx context.Context, fn func(tx types.TxnRepository) error) error {
 	tx, err := r.db.BeginTxx(ctx, &sql.TxOptions{})
 	if err != nil {
-		return err
+		return errors.WrapDBError(ctx, err)
 	}
 	err = fn(&TxnRepository{tx: tx})
 	if err != nil {
@@ -69,4 +69,101 @@ func (r *TxnRepository) GetTodo(ctx context.Context, id model.TodoID) (model.Nul
 	}
 
 	return model.NullTodo{Valid: true, Todo: todo}, nil
+}
+
+var insertTodoQuery = dblib.NewNamedQuery(`
+INSERT INTO todos (name) VALUES (:name)
+`)
+
+// InsertTodo ...
+func (r *TxnRepository) InsertTodo(ctx context.Context, save model.TodoSave) (model.TodoID, error) {
+	res, err := r.tx.NamedExecContext(ctx, insertTodoQuery, save)
+	if err != nil {
+		return 0, errors.WrapDBError(ctx, err)
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		return 0, errors.WrapDBError(ctx, err)
+	}
+	return model.TodoID(id), nil
+}
+
+var updateTodoQuery = dblib.NewNamedQuery(`
+UPDATE todos
+SET name = :name, updated_at = CURRENT_TIMESTAMP
+WHERE id = :id
+`)
+
+// UpdateTodo ...
+func (r *TxnRepository) UpdateTodo(ctx context.Context, save model.TodoSave) error {
+	_, err := r.tx.NamedExecContext(ctx, updateTodoQuery, save)
+	if err != nil {
+		return errors.WrapDBError(ctx, err)
+	}
+	return nil
+}
+
+var getTodoItemsByTodoIDQuery = dblib.NewQuery(`
+SELECT id, todo_id, name FROM todo_items WHERE todo_id = ?
+`)
+
+// GetTodoItemsByTodoID ...
+func (r *TxnRepository) GetTodoItemsByTodoID(ctx context.Context, todoID model.TodoID,
+) ([]model.TodoItem, error) {
+	var result []model.TodoItem
+	err := r.tx.SelectContext(ctx, &result, getTodoItemsByTodoIDQuery, todoID)
+	if err != nil {
+		return nil, errors.WrapDBError(ctx, err)
+	}
+	return result, nil
+}
+
+var deleteTodoItemsQuery = dblib.NewQuery(`
+DELETE FROM todo_items WHERE id IN (?)
+`)
+
+// DeleteTodoItems ...
+func (r *TxnRepository) DeleteTodoItems(ctx context.Context, todoItemIDs []model.TodoItemID) error {
+	if len(todoItemIDs) == 0 {
+		return nil
+	}
+
+	query, args, err := sqlx.In(deleteTodoItemsQuery, todoItemIDs)
+	if err != nil {
+		return errors.WrapDBError(ctx, err)
+	}
+
+	_, err = r.tx.ExecContext(ctx, query, args...)
+	return errors.WrapDBError(ctx, err)
+}
+
+var insertTodoItemQuery = dblib.NewNamedQuery(`
+INSERT INTO todo_items (todo_id, name) VALUES (:todo_id, :name)
+`)
+
+// InsertTodoItem ...
+func (r *TxnRepository) InsertTodoItem(ctx context.Context, save model.TodoItemSave,
+) (model.TodoItemID, error) {
+	res, err := r.tx.NamedExecContext(ctx, insertTodoItemQuery, save)
+	if err != nil {
+		return 0, errors.WrapDBError(ctx, err)
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		return 0, errors.WrapDBError(ctx, err)
+	}
+	return model.TodoItemID(id), nil
+}
+
+var updateTodoItemQuery = dblib.NewNamedQuery(`
+UPDATE todo_items SET name = :name WHERE id = :id
+`)
+
+// UpdateTodoITem ...
+func (r *TxnRepository) UpdateTodoITem(ctx context.Context, save model.TodoItemSave) error {
+	_, err := r.tx.NamedExecContext(ctx, updateTodoItemQuery, save)
+	if err != nil {
+		return errors.WrapDBError(ctx, err)
+	}
+	return nil
 }

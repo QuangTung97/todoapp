@@ -2,13 +2,14 @@ package service
 
 import (
 	"context"
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"todoapp/pkg/errors"
 	types_mocks "todoapp/todoapp/mocks"
 	"todoapp/todoapp/model"
 	"todoapp/todoapp/types"
+
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 )
 
 func mockTransact(ctrl *gomock.Controller, repo *types_mocks.MockRepository,
@@ -22,18 +23,71 @@ func mockTransact(ctrl *gomock.Controller, repo *types_mocks.MockRepository,
 	return mockTxn
 }
 
-func TestService_SaveTodo(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+func TestService_SaveTodo_Insert(t *testing.T) {
 
-	repo := types_mocks.NewMockRepository(ctrl)
-	txn := mockTransact(ctrl, repo)
-	txn.EXPECT().GetTodo(gomock.Any(), model.TodoID(0)).Return(model.NullTodo{}, nil)
+	table := []struct {
+		name  string
+		input types.SaveTodoInput
 
-	s := NewService(repo)
+		expectedCall func(tx *types_mocks.MockTxnRepository)
+		expectedErr  error
+		expectedID   model.TodoID
+	}{
+		{
+			name: "empty items",
+			input: types.SaveTodoInput{
+				Items: nil,
+			},
+			expectedErr: errors.Todo.InvalidArgumentEmptyItems.Err(),
+		},
+		{
+			name: "empty items",
+			input: types.SaveTodoInput{
+				Name: "Todo Item",
+				Items: []types.SaveTodoItem{
+					{Name: "Item 1"},
+				},
+			},
+			expectedCall: func(tx *types_mocks.MockTxnRepository) {
+				inserted := model.TodoSave{
+					Name: "Todo Item",
+				}
+				id := model.TodoID(100)
+				tx.EXPECT().InsertTodo(gomock.Any(), inserted).Return(id, nil)
 
-	ctx := context.Background()
-	input := types.SaveTodoInput{}
-	_, err := s.SaveTodo(ctx, input)
-	assert.Equal(t, errors.Todo.NotFoundTodo.Err(), err)
+				item := model.TodoItemSave{
+					TodoID: 100,
+					Name:   "Item 1",
+				}
+				idItem := model.TodoItemID(22)
+				tx.EXPECT().InsertTodoItem(gomock.Any(), item).Return(idItem, nil)
+			},
+			expectedErr: nil,
+			expectedID:  100,
+		},
+	}
+
+	for _, e := range table {
+		t.Run(e.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			repo := types_mocks.NewMockRepository(ctrl)
+			tx := mockTransact(ctrl, repo)
+
+			if e.expectedCall != nil {
+				// txn.EXPECT().GetTodo(gomock.Any(), model.TodoID(0)).Return(model.NullTodo{}, nil)
+				e.expectedCall(tx)
+			}
+
+			s := NewService(repo)
+
+			ctx := context.Background()
+			id, err := s.SaveTodo(ctx, e.input)
+
+			assert.Equal(t, e.expectedErr, err)
+			assert.Equal(t, e.expectedID, id)
+		})
+	}
+
 }

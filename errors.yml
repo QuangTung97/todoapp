@@ -13,3 +13,11 @@ todo:
     rpcStatus: 5
     code: "0501"
     message: "Not found todo"
+  notFoundTodoItem:
+    rpcStatus: 5
+    code: "0502"
+    message: "Not found todo item"
+  invalidArgumentEmptyItems:
+    rpcStatus: 3
+    code: "0301"
+    message: "Todo items must not be empty"

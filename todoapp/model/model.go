@@ -1,7 +1,18 @@
 package model
 
+//=====================
+// ID Definitions
+//=====================
+
 // TodoID ...
 type TodoID uint32
+
+// TodoItemID ...
+type TodoItemID uint32
+
+//=====================
+// Save Models
+//=====================
 
 // TodoSave for saving todo
 type TodoSave struct {
@@ -9,14 +20,16 @@ type TodoSave struct {
 	Name string `db:"name"`
 }
 
-// TodoItemID ...
-type TodoItemID uint32
-
-// TodoItemInsert for inserting todo item
-type TodoItemInsert struct {
-	TodoID TodoID `db:"todo_id"`
-	Name   string `db:"name"`
+// TodoItemSave for saving todo item
+type TodoItemSave struct {
+	ID     TodoItemID `db:"id"`
+	TodoID TodoID     `db:"todo_id"`
+	Name   string     `db:"name"`
 }
+
+//=====================
+// Get Models
+//=====================
 
 // Todo ...
 type Todo struct {
@@ -28,4 +41,17 @@ type Todo struct {
 type NullTodo struct {
 	Valid bool
 	Todo  Todo
+}
+
+// TodoItem ...
+type TodoItem struct {
+	ID     TodoItemID `db:"id"`
+	TodoID TodoID     `db:"todo_id"`
+	Name   string     `db:"name"`
+}
+
+// NullTodoItem ...
+type NullTodoItem struct {
+	Valid bool
+	Item  TodoItem
 }

@@ -51,6 +51,23 @@ var General = &GeneralTag{
 	Unknown:                        NewErrGeneralUnknown(),
 }
 
+// ErrTodoInvalidArgumentEmptyItems ...
+type ErrTodoInvalidArgumentEmptyItems liberrors.Error
+
+// NewErrTodoInvalidArgumentEmptyItems ...
+func NewErrTodoInvalidArgumentEmptyItems() *ErrTodoInvalidArgumentEmptyItems {
+	return &ErrTodoInvalidArgumentEmptyItems{
+		RPCStatus: 3,
+		Code:      "0301",
+		Message:   "Todo items must not be empty",
+	}
+}
+
+// Err ...
+func (e *ErrTodoInvalidArgumentEmptyItems) Err() error {
+	return (*liberrors.Error)(e)
+}
+
 // ErrTodoNotFoundTodo ...
 type ErrTodoNotFoundTodo liberrors.Error
 
@@ -68,12 +85,33 @@ func (e *ErrTodoNotFoundTodo) Err() error {
 	return (*liberrors.Error)(e)
 }
 
+// ErrTodoNotFoundTodoItem ...
+type ErrTodoNotFoundTodoItem liberrors.Error
+
+// NewErrTodoNotFoundTodoItem ...
+func NewErrTodoNotFoundTodoItem() *ErrTodoNotFoundTodoItem {
+	return &ErrTodoNotFoundTodoItem{
+		RPCStatus: 5,
+		Code:      "0502",
+		Message:   "Not found todo item",
+	}
+}
+
+// Err ...
+func (e *ErrTodoNotFoundTodoItem) Err() error {
+	return (*liberrors.Error)(e)
+}
+
 // TodoTag ...
 type TodoTag struct {
-	NotFoundTodo *ErrTodoNotFoundTodo
+	InvalidArgumentEmptyItems *ErrTodoInvalidArgumentEmptyItems
+	NotFoundTodo              *ErrTodoNotFoundTodo
+	NotFoundTodoItem          *ErrTodoNotFoundTodoItem
 }
 
 // Todo ...
 var Todo = &TodoTag{
-	NotFoundTodo: NewErrTodoNotFoundTodo(),
+	InvalidArgumentEmptyItems: NewErrTodoInvalidArgumentEmptyItems(),
+	NotFoundTodo:              NewErrTodoNotFoundTodo(),
+	NotFoundTodoItem:          NewErrTodoNotFoundTodoItem(),
 }

@@ -21,6 +21,15 @@ type (
 
 	// TxnRepository ...
 	TxnRepository interface {
+		// For Todos
 		GetTodo(ctx context.Context, id model.TodoID) (model.NullTodo, error)
+		InsertTodo(ctx context.Context, save model.TodoSave) (model.TodoID, error)
+		UpdateTodo(ctx context.Context, save model.TodoSave) error
+
+		// For Todo Items
+		GetTodoItemsByTodoID(ctx context.Context, todoID model.TodoID) ([]model.TodoItem, error)
+		DeleteTodoItems(ctx context.Context, todoItemIDs []model.TodoItemID) error
+		InsertTodoItem(ctx context.Context, save model.TodoItemSave) (model.TodoItemID, error)
+		UpdateTodoITem(ctx context.Context, save model.TodoItemSave) error
 	}
 )
