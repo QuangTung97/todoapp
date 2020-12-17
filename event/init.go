@@ -1,7 +1,14 @@
-package server
+package event
 
 import (
 	"context"
+	"todoapp/config"
+	"todoapp/lib/errors"
+	"todoapp/lib/log"
+
+	health_rpc "todoapp-rpc/rpc/health/v1"
+	common_server "todoapp/common/server"
+
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
@@ -10,40 +17,28 @@ import (
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
-	health_rpc "todoapp-rpc/rpc/health/v1"
-	todoapp_rpc "todoapp-rpc/rpc/todoapp/v1"
-	common_server "todoapp/common/server"
-	"todoapp/config"
-	"todoapp/lib/errors"
-	"todoapp/lib/log"
-	"todoapp/lib/mysql"
-	todoapp_server "todoapp/todoapp/server"
 )
 
-// Root struct for whole app
+// Root ...
 type Root struct {
 	conf   config.Config
-	db     *sqlx.DB
 	logger *zap.Logger
+	db     *sqlx.DB
 
-	health        *common_server.HealthServer
-	todoappServer *todoapp_server.Server
+	health *common_server.HealthServer
 }
 
-// NewRoot initializes gRPC servers
+// NewRoot ...
 func NewRoot(conf config.Config) *Root {
 	logger := log.NewLogger(conf.Log)
-	db := mysql.MustConnect(conf.MySQL)
-
-	todoappServer := todoapp_server.InitServer(db)
+	db := sqlx.MustConnect("mysql", conf.MySQL.DSN())
 
 	return &Root{
 		conf:   conf,
-		db:     db,
 		logger: logger,
+		db:     db,
 
-		health:        &common_server.HealthServer{},
-		todoappServer: todoappServer,
+		health: &common_server.HealthServer{},
 	}
 }
 
@@ -74,14 +69,11 @@ func (r *Root) StreamInterceptor() grpc.ServerOption {
 }
 
 // Register register gRPC & gateway servers
-func (r *Root) Register(ctx context.Context, server *grpc.Server, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) {
+func (r *Root) Register(
+	ctx context.Context, server *grpc.Server, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption,
+) {
 	health_rpc.RegisterHealthServiceServer(server, r.health)
 	if err := health_rpc.RegisterHealthServiceHandlerFromEndpoint(ctx, mux, endpoint, opts); err != nil {
-		panic(err)
-	}
-
-	todoapp_rpc.RegisterTodoServiceServer(server, r.todoappServer)
-	if err := todoapp_rpc.RegisterTodoServiceHandlerFromEndpoint(ctx, mux, endpoint, opts); err != nil {
 		panic(err)
 	}
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/spf13/cobra"
 	"net"
 	"net/http"
 	"os"
@@ -12,45 +13,33 @@ import (
 	"syscall"
 	"time"
 	"todoapp/config"
+	"todoapp/event"
 	"todoapp/lib/dblib"
 	"todoapp/lib/errors"
 	"todoapp/lib/mysql"
-	"todoapp/server"
 
+	_ "github.com/go-sql-driver/mysql"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
-
-	_ "github.com/go-sql-driver/mysql"
 )
 
 func main() {
 	dblib.FinishRegisterQueries()
 
 	rootCmd := &cobra.Command{
-		Use: "server",
+		Use: "event",
 	}
 
 	rootCmd.AddCommand(
-		startServerCommand(),
+		startCommand(),
 		checkSQLCommand(),
 	)
 
 	err := rootCmd.Execute()
 	if err != nil {
 		fmt.Println(err)
-	}
-}
-
-func startServerCommand() *cobra.Command {
-	return &cobra.Command{
-		Use:   "start",
-		Short: "start the server",
-		Run: func(cmd *cobra.Command, args []string) {
-			startServer()
-		},
 	}
 }
 
@@ -78,9 +67,19 @@ func checkSQLCommand() *cobra.Command {
 	}
 }
 
-func startServer() {
+func startCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "start",
+		Short: "start the event server",
+		Run: func(cmd *cobra.Command, args []string) {
+			startEventServer()
+		},
+	}
+}
+
+func startEventServer() {
 	conf := config.Load()
-	root := server.NewRoot(conf)
+	root := event.NewRoot(conf)
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)

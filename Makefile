@@ -1,9 +1,12 @@
 .PHONY: build gen-error next-error-code lint test check-sql install-tools migrate-up migrate-down-1 mock-gen
 
+EVENTCORE := $(shell go list -m -f "{{.Dir}}" github.com/QuangTung97/eventcore)
+
 build:
 	go build -o bin/errors cmd/errors/main.go
 	go build -o bin/migrate cmd/migrate/main.go
 	go build -o bin/server cmd/server/main.go
+	go build -o bin/event cmd/event/main.go
 
 run-pretty:
 	go run cmd/server/main.go start 2>&1 > /dev/null | jq -r ".,.stacktrace"
@@ -38,3 +41,7 @@ migrate-down-1:
 
 mock-gen:
 	go generate ./...
+
+event-gen:
+	genny -in=${EVENTCORE}/core.go -out=todoapp/event/core/core.go -pkg="core" gen "Event=Event"
+	genny -in=${EVENTCORE}/options.go -out=todoapp/event/core/options.go -pkg="core" gen "Event=Event"
