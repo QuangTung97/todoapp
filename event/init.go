@@ -67,6 +67,8 @@ func NewRoot(conf config.Config) *Root {
 		}),
 	)
 
+	todoCore.Signal()
+
 	todoServer := server.NewEventServer(todoCore)
 
 	return &Root{
