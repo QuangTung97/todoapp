@@ -29,6 +29,9 @@ import (
 func main() {
 	dblib.FinishRegisterQueries()
 
+	fmt.Println("BuildDate:", config.BuildDate)
+	fmt.Println("GitCommit:", config.GitCommit)
+
 	rootCmd := &cobra.Command{
 		Use: "server",
 	}

@@ -1,4 +1,4 @@
-.PHONY: build gen-error next-error-code lint test check-sql install-tools migrate-up migrate-down-1 mock-gen
+.PHONY: build gen-error next-error-code lint test check-sql install-tools migrate-up migrate-down-1 mock-gen event-gen build-prod
 
 EVENTCORE := $(shell go list -m -f "{{.Dir}}" github.com/QuangTung97/eventcore)
 
@@ -45,3 +45,10 @@ mock-gen:
 event-gen:
 	genny -in=${EVENTCORE}/core.go -out=todoapp/event/core/core.go -pkg="core" gen "Event=Event"
 	genny -in=${EVENTCORE}/options.go -out=todoapp/event/core/options.go -pkg="core" gen "Event=Event"
+
+LDFLAGS := "-X todoapp/config.BuildDate=`date --iso-8601=seconds` -X todoapp/config.GitCommit=`git rev-parse --short HEAD`"
+
+build-prod:
+	go build -ldflags ${LDFLAGS} -o bin/migrate cmd/migrate/main.go
+	go build -ldflags ${LDFLAGS} -o bin/server cmd/server/main.go
+	go build -ldflags ${LDFLAGS} -o bin/event cmd/event/main.go
