@@ -1,4 +1,4 @@
-CREATE TABLE events
+CREATE TABLE todo_events
 (
     id         BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
     sequence   BIGINT UNSIGNED NULL,
@@ -6,4 +6,12 @@ CREATE TABLE events
     created_at TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE UNIQUE INDEX idx_sequence ON events (sequence);
+CREATE UNIQUE INDEX idx_sequence ON todo_events (sequence);
+
+CREATE TABLE todo_publishers
+(
+    id         BIGINT UNSIGNED PRIMARY KEY,
+    sequence   BIGINT UNSIGNED NOT NULL,
+    created_at TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
