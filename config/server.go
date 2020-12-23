@@ -17,3 +17,9 @@ type Server struct {
 	GRPC ServerListen `mapstructure:"grpc"`
 	HTTP ServerListen `mapstructure:"http"`
 }
+
+// Event for event server configure
+type Event struct {
+	GRPC ServerListen `mapstructure:"grpc"`
+	HTTP ServerListen `mapstructure:"http"`
+}

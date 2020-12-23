@@ -167,3 +167,8 @@ func (r *TxnRepository) UpdateTodoITem(ctx context.Context, save model.TodoItemS
 	}
 	return nil
 }
+
+// ToEventRepository ...
+func (r *TxnRepository) ToEventRepository() types.EventTxnRepository {
+	return NewEventTxnRepository(r.tx)
+}

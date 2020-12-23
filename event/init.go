@@ -2,9 +2,15 @@ package event
 
 import (
 	"context"
+	"fmt"
+	"time"
+	todoapp_rpc "todoapp-rpc/rpc/todoapp/v1"
 	"todoapp/config"
 	"todoapp/lib/errors"
 	"todoapp/lib/log"
+	"todoapp/todoapp/event/core"
+	"todoapp/todoapp/repo"
+	"todoapp/todoapp/server"
 
 	health_rpc "todoapp-rpc/rpc/health/v1"
 	common_server "todoapp/common/server"
@@ -25,7 +31,24 @@ type Root struct {
 	logger *zap.Logger
 	db     *sqlx.DB
 
+	todoCore   *core.Core
+	todoServer *server.EventServer
+
 	health *common_server.HealthServer
+}
+
+type publisher struct {
+}
+
+var _ core.Publisher = &publisher{}
+
+func (p *publisher) GetID() core.PublisherID {
+	return 1
+}
+
+func (p *publisher) Publish(events []core.Event) error {
+	fmt.Println("Published:", events)
+	return nil
 }
 
 // NewRoot ...
@@ -33,10 +56,26 @@ func NewRoot(conf config.Config) *Root {
 	logger := log.NewLogger(conf.Log)
 	db := sqlx.MustConnect("mysql", conf.MySQL.DSN())
 
+	todoRepo := repo.NewEventRepository(db)
+	todoCore := core.NewCore(todoRepo,
+		core.SetSequenceImpl, core.GetSequenceImpl,
+		core.WithErrorTimeout(10*time.Second),
+		core.AddPublisher(&publisher{}),
+		core.WithErrorLogger(func(message string, err error) {
+			logger.WithOptions(zap.AddCallerSkip(1)).
+				Error(message, zap.Error(err))
+		}),
+	)
+
+	todoServer := server.NewEventServer(todoCore)
+
 	return &Root{
 		conf:   conf,
 		logger: logger,
 		db:     db,
+
+		todoCore:   todoCore,
+		todoServer: todoServer,
 
 		health: &common_server.HealthServer{},
 	}
@@ -76,6 +115,16 @@ func (r *Root) Register(
 	if err := health_rpc.RegisterHealthServiceHandlerFromEndpoint(ctx, mux, endpoint, opts); err != nil {
 		panic(err)
 	}
+
+	todoapp_rpc.RegisterEventServiceServer(server, r.todoServer)
+	if err := todoapp_rpc.RegisterEventServiceHandlerFromEndpoint(ctx, mux, endpoint, opts); err != nil {
+		panic(err)
+	}
+}
+
+// Run ...
+func (r *Root) Run(ctx context.Context) {
+	r.todoCore.Run(ctx)
 }
 
 // Shutdown for graceful shutdown

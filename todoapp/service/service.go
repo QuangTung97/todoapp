@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	todoapp_rpc "todoapp-rpc/rpc/todoapp/v1"
 	"todoapp/pkg/errors"
 	"todoapp/todoapp/model"
 	"todoapp/todoapp/types"
@@ -13,15 +14,17 @@ import (
 
 // Service ...
 type Service struct {
-	repo types.Repository
+	repo   types.Repository
+	client types.EventClient
 }
 
 var _ types.Service = &Service{}
 
 // NewService creates a service
-func NewService(repo types.Repository) *Service {
+func NewService(repo types.Repository, client types.EventClient) *Service {
 	return &Service{
-		repo: repo,
+		repo:   repo,
+		client: client,
 	}
 }
 
@@ -51,6 +54,22 @@ func insertTodo(ctx context.Context, tx types.TxnRepository, input types.SaveTod
 	return id, nil
 }
 
+func addEvent(ctx context.Context, tx types.TxnRepository, todoID model.TodoID, name string) error {
+	event := types.Event{
+		Data: &todoapp_rpc.Event{
+			Type: todoapp_rpc.EventType_EVENT_TYPE_TODO_SAVE,
+			TodoSave: &todoapp_rpc.EventTodoSave{
+				Id:   uint64(todoID),
+				Name: name,
+			},
+		},
+	}
+
+	eventTx := tx.ToEventRepository()
+	_, err := eventTx.InsertEvent(ctx, event.ToModel())
+	return err
+}
+
 // SaveTodo ...
 func (s *Service) SaveTodo(ctx context.Context, input types.SaveTodoInput) (model.TodoID, error) {
 	todoID := input.ID
@@ -61,7 +80,7 @@ func (s *Service) SaveTodo(ctx context.Context, input types.SaveTodoInput) (mode
 				return err
 			}
 			todoID = id
-			return nil
+			return addEvent(ctx, tx, todoID, input.Name)
 		}
 
 		nullTodo, err := tx.GetTodo(ctx, input.ID)
@@ -111,11 +130,13 @@ func (s *Service) SaveTodo(ctx context.Context, input types.SaveTodoInput) (mode
 			}
 		}
 
-		return nil
+		return addEvent(ctx, tx, todoID, input.Name)
 	})
 	if err != nil {
 		return 0, err
 	}
+
+	s.client.Signal(ctx)
 
 	return todoID, nil
 }

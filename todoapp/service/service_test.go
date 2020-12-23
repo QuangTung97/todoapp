@@ -80,7 +80,7 @@ func TestService_SaveTodo_Insert(t *testing.T) {
 				e.expectedCall(tx)
 			}
 
-			s := NewService(repo)
+			s := NewService(repo, nil)
 
 			ctx := context.Background()
 			id, err := s.SaveTodo(ctx, e.input)

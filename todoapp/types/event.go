@@ -36,7 +36,7 @@ func (e Event) ToModel() model.Event {
 
 // EventFromModel ...
 func EventFromModel(e model.Event) Event {
-	var data *todoapp_rpc.Event
+	data := &todoapp_rpc.Event{}
 	err := proto.Unmarshal([]byte(e.Data), data)
 	if err != nil {
 		panic(err)

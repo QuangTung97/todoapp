@@ -35,7 +35,12 @@ func NewRoot(conf config.Config) *Root {
 	logger := log.NewLogger(conf.Log)
 	db := mysql.MustConnect(conf.MySQL)
 
-	todoappServer := todoapp_server.InitServer(db)
+	conn, err := grpc.Dial(conf.Event.GRPC.String(), grpc.WithInsecure())
+	if err != nil {
+		panic(err)
+	}
+
+	todoappServer := todoapp_server.InitServer(db, conn)
 
 	return &Root{
 		conf:   conf,

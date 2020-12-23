@@ -10,6 +10,7 @@ import (
 // Config for configuring whole app
 type Config struct {
 	Server Server       `mapstructure:"server"`
+	Event  Event        `mapstructure:"event"`
 	Log    log.Config   `mapstructure:"log"`
 	MySQL  mysql.Config `mapstructure:"mysql"`
 }

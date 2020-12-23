@@ -5,6 +5,13 @@ server:
   http:
     host: 0.0.0.0
     port: 10080
+event:
+  grpc:
+    host: 0.0.0.0
+    port: 20400
+  http:
+    host: 0.0.0.0
+    port: 20080
 
 log:
   level: debug #  debug, info, warn, error, dpanic, panic, fatal

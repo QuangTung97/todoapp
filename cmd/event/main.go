@@ -95,7 +95,7 @@ func startEventServer() {
 	)
 
 	ctx := context.Background()
-	root.Register(ctx, grpcServer, mux, conf.Server.GRPC.String(), []grpc.DialOption{grpc.WithInsecure()})
+	root.Register(ctx, grpcServer, mux, conf.Event.GRPC.String(), []grpc.DialOption{grpc.WithInsecure()})
 
 	grpc_prometheus.EnableHandlingTimeHistogram()
 	grpc_prometheus.Register(grpcServer)
@@ -105,15 +105,19 @@ func startEventServer() {
 	httpMux.Handle("/", mux)
 
 	httpServer := http.Server{
-		Addr:    conf.Server.HTTP.String(),
+		Addr:    conf.Event.HTTP.String(),
 		Handler: httpMux,
 	}
+
+	ctx = context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
 	//--------------------------------
 	// Run HTTP & gRPC servers
 	//--------------------------------
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(3)
 
 	go func() {
 		defer wg.Done()
@@ -127,7 +131,7 @@ func startEventServer() {
 	go func() {
 		defer wg.Done()
 
-		listener, err := net.Listen("tcp", conf.Server.GRPC.String())
+		listener, err := net.Listen("tcp", conf.Event.GRPC.String())
 		if err != nil {
 			panic(err)
 		}
@@ -138,14 +142,21 @@ func startEventServer() {
 		}
 	}()
 
+	go func() {
+		defer wg.Done()
+
+		root.Run(ctx)
+	}()
+
 	//--------------------------------
 	// Graceful Shutdown
 	//--------------------------------
 	<-stop
+	cancel()
 
 	ctx = context.Background()
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
+	ctx, shutdownCancel := context.WithTimeout(ctx, 30*time.Second)
+	defer shutdownCancel()
 
 	grpcServer.GracefulStop()
 	err := httpServer.Shutdown(ctx)

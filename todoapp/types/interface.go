@@ -31,5 +31,17 @@ type (
 		DeleteTodoItems(ctx context.Context, todoItemIDs []model.TodoItemID) error
 		InsertTodoItem(ctx context.Context, save model.TodoItemSave) (model.TodoItemID, error)
 		UpdateTodoITem(ctx context.Context, save model.TodoItemSave) error
+
+		ToEventRepository() EventTxnRepository
+	}
+
+	// EventTxnRepository ...
+	EventTxnRepository interface {
+		InsertEvent(ctx context.Context, event model.Event) (model.EventID, error)
+	}
+
+	// EventClient ...
+	EventClient interface {
+		Signal(ctx context.Context)
 	}
 )
