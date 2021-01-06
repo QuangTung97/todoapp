@@ -2,91 +2,564 @@ package service
 
 import (
 	"context"
+	"github.com/stretchr/testify/assert"
 	"testing"
+	todoapp_rpc "todoapp-rpc/rpc/todoapp/v1"
 	"todoapp/pkg/errors"
-	types_mocks "todoapp/todoapp/mocks"
 	"todoapp/todoapp/model"
 	"todoapp/todoapp/types"
-
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
 )
 
-func mockTransact(ctrl *gomock.Controller, repo *types_mocks.MockRepository,
-) *types_mocks.MockTxnRepository {
-	mockTxn := types_mocks.NewMockTxnRepository(ctrl)
+func TestTodoSaveTx_Update(t *testing.T) {
+	type getTodoOutput struct {
+		nullTodo model.NullTodo
+		err      error
+	}
 
-	repo.EXPECT().Transact(gomock.Any(), gomock.Any()).DoAndReturn(
-		func(ctx context.Context, fn func(repository types.TxnRepository) error) error {
-			return fn(mockTxn)
-		})
-	return mockTxn
-}
+	type getTodoItemsOutput struct {
+		items []model.TodoItem
+		err   error
+	}
 
-func TestService_SaveTodo_Insert(t *testing.T) {
+	type addEventOutput struct {
+		eventID model.EventID
+		err     error
+	}
 
 	table := []struct {
 		name  string
 		input types.SaveTodoInput
 
-		expectedCall func(tx *types_mocks.MockTxnRepository)
-		expectedErr  error
-		expectedID   model.TodoID
+		getTodoOutput      getTodoOutput
+		getTodoItemsOutput getTodoItemsOutput
+		updateTodoOutput   error
+		deleteItemsOutput  error
+		updateItemOutputs  []error
+		createItemOutputs  []error
+		addEventOutput     addEventOutput
+
+		expectedGetTodoInput      model.TodoID
+		expectedGetTodoItemsInput model.TodoID
+		expectedUpdateTodoInput   model.TodoSave
+		expectedDeleteItemsInput  []model.TodoItemID
+		expectedUpdateItemInputs  []model.TodoItemSave
+		expectedCreateItemInputs  []model.TodoItemSave
+		expectedAddEventInput     model.Event
+
+		expectedErr error
+		expectedID  model.TodoID
 	}{
 		{
-			name: "empty items",
+			name: "not-found-todo",
 			input: types.SaveTodoInput{
-				Items: nil,
+				ID: 11,
 			},
-			expectedErr: errors.Todo.InvalidArgumentEmptyItems.Err(),
+			getTodoOutput: getTodoOutput{
+				nullTodo: model.NullTodo{Valid: false},
+			},
+			expectedGetTodoInput: 11,
+			expectedErr:          errors.Todo.NotFoundTodo.Err(),
 		},
 		{
-			name: "empty items",
+			name: "get-todo-with-error",
 			input: types.SaveTodoInput{
-				Name: "Todo Item",
-				Items: []types.SaveTodoItem{
-					{Name: "Item 1"},
+				ID: 11,
+			},
+			getTodoOutput: getTodoOutput{
+				err: errors.General.InternalErrorAccessingDatabase.Err(),
+			},
+			expectedGetTodoInput: 11,
+			expectedErr:          errors.General.InternalErrorAccessingDatabase.Err(),
+		},
+		{
+			name: "get-todo-items-with-error",
+			input: types.SaveTodoInput{
+				ID: 11,
+			},
+			getTodoOutput: getTodoOutput{
+				nullTodo: model.NullTodo{
+					Valid: true,
+					Todo: model.Todo{
+						ID:   11,
+						Name: "Test todo",
+					},
 				},
 			},
-			expectedCall: func(tx *types_mocks.MockTxnRepository) {
-				inserted := model.TodoSave{
-					Name: "Todo Item",
-				}
-				id := model.TodoID(100)
-				tx.EXPECT().InsertTodo(gomock.Any(), inserted).Return(id, nil)
-
-				item := model.TodoItemSave{
-					TodoID: 100,
-					Name:   "Item 1",
-				}
-				idItem := model.TodoItemID(22)
-				tx.EXPECT().InsertTodoItem(gomock.Any(), item).Return(idItem, nil)
+			getTodoItemsOutput: getTodoItemsOutput{
+				err: errors.General.InternalErrorAccessingDatabase.Err(),
 			},
+			expectedGetTodoInput:      11,
+			expectedGetTodoItemsInput: 11,
+			expectedErr:               errors.General.InternalErrorAccessingDatabase.Err(),
+		},
+		{
+			name: "update-todo-error",
+			input: types.SaveTodoInput{
+				ID:   11,
+				Name: "new todo",
+			},
+			getTodoOutput: getTodoOutput{
+				nullTodo: model.NullTodo{
+					Valid: true,
+					Todo: model.Todo{
+						ID:   11,
+						Name: "Test todo",
+					},
+				},
+			},
+			getTodoItemsOutput: getTodoItemsOutput{
+				err: nil,
+			},
+			updateTodoOutput: errors.General.InternalErrorAccessingDatabase.Err(),
+
+			expectedGetTodoInput:      11,
+			expectedGetTodoItemsInput: 11,
+			expectedUpdateTodoInput: model.TodoSave{
+				ID:   11,
+				Name: "new todo",
+			},
+			expectedErr: errors.General.InternalErrorAccessingDatabase.Err(),
+		},
+		{
+			name: "delete-items-error",
+			input: types.SaveTodoInput{
+				ID:   11,
+				Name: "new todo",
+			},
+			getTodoOutput: getTodoOutput{
+				nullTodo: model.NullTodo{
+					Valid: true,
+					Todo: model.Todo{
+						ID:   11,
+						Name: "test todo",
+					},
+				},
+			},
+			getTodoItemsOutput: getTodoItemsOutput{
+				items: []model.TodoItem{
+					{ID: 33},
+					{ID: 44},
+				},
+				err: nil,
+			},
+			updateTodoOutput:  nil,
+			deleteItemsOutput: errors.General.InternalErrorAccessingDatabase.Err(),
+
+			expectedGetTodoInput:      11,
+			expectedGetTodoItemsInput: 11,
+			expectedUpdateTodoInput: model.TodoSave{
+				ID:   11,
+				Name: "new todo",
+			},
+			expectedDeleteItemsInput: []model.TodoItemID{33, 44},
+
+			expectedErr: errors.General.InternalErrorAccessingDatabase.Err(),
+		},
+		{
+			name: "add-event-error",
+			input: types.SaveTodoInput{
+				ID:   11,
+				Name: "new todo",
+			},
+			getTodoOutput: getTodoOutput{
+				nullTodo: model.NullTodo{
+					Valid: true,
+					Todo: model.Todo{
+						ID:   11,
+						Name: "test todo",
+					},
+				},
+			},
+			getTodoItemsOutput: getTodoItemsOutput{
+				items: []model.TodoItem{
+					{ID: 33},
+					{ID: 44},
+				},
+				err: nil,
+			},
+			updateTodoOutput:  nil,
+			deleteItemsOutput: nil,
+			addEventOutput: addEventOutput{
+				err: errors.General.InternalErrorAccessingDatabase.Err(),
+			},
+
+			expectedGetTodoInput:      11,
+			expectedGetTodoItemsInput: 11,
+			expectedUpdateTodoInput: model.TodoSave{
+				ID:   11,
+				Name: "new todo",
+			},
+			expectedDeleteItemsInput: []model.TodoItemID{33, 44},
+			expectedAddEventInput: types.Event{
+				ID:       0,
+				Sequence: 0,
+				Data: &todoapp_rpc.Event{
+					Type: todoapp_rpc.EventType_EVENT_TYPE_TODO_SAVE,
+					TodoSave: &todoapp_rpc.EventTodoSave{
+						Id:   11,
+						Name: "new todo",
+					},
+				},
+			}.ToModel(),
+
+			expectedErr: errors.General.InternalErrorAccessingDatabase.Err(),
+		},
+		{
+			name: "ok-no-update-insert-item",
+			input: types.SaveTodoInput{
+				ID:   11,
+				Name: "new todo",
+			},
+			getTodoOutput: getTodoOutput{
+				nullTodo: model.NullTodo{
+					Valid: true,
+					Todo: model.Todo{
+						ID:   11,
+						Name: "test todo",
+					},
+				},
+			},
+			getTodoItemsOutput: getTodoItemsOutput{
+				items: []model.TodoItem{
+					{ID: 33},
+					{ID: 44},
+				},
+				err: nil,
+			},
+			updateTodoOutput:  nil,
+			deleteItemsOutput: nil,
+			addEventOutput:    addEventOutput{},
+
+			expectedGetTodoInput:      11,
+			expectedGetTodoItemsInput: 11,
+			expectedUpdateTodoInput: model.TodoSave{
+				ID:   11,
+				Name: "new todo",
+			},
+			expectedDeleteItemsInput: []model.TodoItemID{33, 44},
+			expectedAddEventInput: types.Event{
+				ID:       0,
+				Sequence: 0,
+				Data: &todoapp_rpc.Event{
+					Type: todoapp_rpc.EventType_EVENT_TYPE_TODO_SAVE,
+					TodoSave: &todoapp_rpc.EventTodoSave{
+						Id:   11,
+						Name: "new todo",
+					},
+				},
+			}.ToModel(),
+
 			expectedErr: nil,
-			expectedID:  100,
+			expectedID:  11,
+		},
+		{
+			name: "compute-actions-error",
+			input: types.SaveTodoInput{
+				ID:   11,
+				Name: "new todo",
+				Items: []types.SaveTodoItem{
+					{
+						ID:   44,
+						Name: "new item 1",
+					},
+					{
+						ID:   55,
+						Name: "new item 2",
+					},
+				},
+			},
+			getTodoOutput: getTodoOutput{
+				nullTodo: model.NullTodo{
+					Valid: true,
+					Todo: model.Todo{
+						ID:   11,
+						Name: "test todo",
+					},
+				},
+			},
+			getTodoItemsOutput: getTodoItemsOutput{
+				items: []model.TodoItem{
+					{ID: 33},
+					{ID: 44},
+				},
+				err: nil,
+			},
+			updateTodoOutput:  nil,
+			deleteItemsOutput: nil,
+			addEventOutput:    addEventOutput{},
+
+			expectedGetTodoInput:      11,
+			expectedGetTodoItemsInput: 11,
+			expectedUpdateTodoInput: model.TodoSave{
+				ID:   11,
+				Name: "new todo",
+			},
+
+			expectedErr: errors.Todo.NotFoundTodoItem.Err(),
+		},
+		{
+			name: "update-items-error",
+			input: types.SaveTodoInput{
+				ID:   11,
+				Name: "new todo",
+				Items: []types.SaveTodoItem{
+					{
+						ID:   44,
+						Name: "new item 1",
+					},
+					{
+						ID:   55,
+						Name: "new item 2",
+					},
+				},
+			},
+			getTodoOutput: getTodoOutput{
+				nullTodo: model.NullTodo{
+					Valid: true,
+					Todo: model.Todo{
+						ID:   11,
+						Name: "test todo",
+					},
+				},
+			},
+			getTodoItemsOutput: getTodoItemsOutput{
+				items: []model.TodoItem{
+					{ID: 33},
+					{ID: 44},
+					{ID: 55},
+				},
+				err: nil,
+			},
+			updateTodoOutput:  nil,
+			deleteItemsOutput: nil,
+			updateItemOutputs: []error{nil, errors.General.InternalErrorAccessingDatabase.Err()},
+			addEventOutput:    addEventOutput{},
+
+			expectedGetTodoInput:      11,
+			expectedGetTodoItemsInput: 11,
+			expectedDeleteItemsInput:  []model.TodoItemID{33},
+			expectedUpdateItemInputs: []model.TodoItemSave{
+				{
+					ID:   44,
+					Name: "new item 1",
+				},
+				{
+					ID:   55,
+					Name: "new item 2",
+				},
+			},
+			expectedUpdateTodoInput: model.TodoSave{
+				ID:   11,
+				Name: "new todo",
+			},
+
+			expectedErr: errors.General.InternalErrorAccessingDatabase.Err(),
+		},
+		{
+			name: "insert-items-error",
+			input: types.SaveTodoInput{
+				ID:   11,
+				Name: "new todo",
+				Items: []types.SaveTodoItem{
+					{
+						ID:   44,
+						Name: "new item 1",
+					},
+					{
+						ID:   55,
+						Name: "new item 2",
+					},
+					{
+						Name: "new item 3",
+					},
+				},
+			},
+			getTodoOutput: getTodoOutput{
+				nullTodo: model.NullTodo{
+					Valid: true,
+					Todo: model.Todo{
+						ID:   11,
+						Name: "test todo",
+					},
+				},
+			},
+			getTodoItemsOutput: getTodoItemsOutput{
+				items: []model.TodoItem{
+					{ID: 33},
+					{ID: 44},
+					{ID: 55},
+				},
+				err: nil,
+			},
+			updateTodoOutput:  nil,
+			deleteItemsOutput: nil,
+			updateItemOutputs: []error{nil, nil},
+			createItemOutputs: []error{errors.General.InternalErrorAccessingDatabase.Err()},
+			addEventOutput:    addEventOutput{},
+
+			expectedGetTodoInput:      11,
+			expectedGetTodoItemsInput: 11,
+			expectedDeleteItemsInput:  []model.TodoItemID{33},
+			expectedUpdateItemInputs: []model.TodoItemSave{
+				{
+					ID:   44,
+					Name: "new item 1",
+				},
+				{
+					ID:   55,
+					Name: "new item 2",
+				},
+			},
+			expectedCreateItemInputs: []model.TodoItemSave{
+				{
+					TodoID: 11,
+					Name:   "new item 3",
+				},
+			},
+			expectedUpdateTodoInput: model.TodoSave{
+				ID:   11,
+				Name: "new todo",
+			},
+
+			expectedErr: errors.General.InternalErrorAccessingDatabase.Err(),
+		},
+		{
+			name: "insert-items-ok",
+			input: types.SaveTodoInput{
+				ID:   11,
+				Name: "new todo",
+				Items: []types.SaveTodoItem{
+					{
+						ID:   44,
+						Name: "new item 1",
+					},
+					{
+						ID:   55,
+						Name: "new item 2",
+					},
+					{
+						Name: "new item 3",
+					},
+				},
+			},
+			getTodoOutput: getTodoOutput{
+				nullTodo: model.NullTodo{
+					Valid: true,
+					Todo: model.Todo{
+						ID:   11,
+						Name: "test todo",
+					},
+				},
+			},
+			getTodoItemsOutput: getTodoItemsOutput{
+				items: []model.TodoItem{
+					{ID: 33},
+					{ID: 44},
+					{ID: 55},
+				},
+				err: nil,
+			},
+			updateTodoOutput:  nil,
+			deleteItemsOutput: nil,
+			updateItemOutputs: []error{nil, nil},
+			createItemOutputs: []error{nil},
+			addEventOutput:    addEventOutput{},
+
+			expectedGetTodoInput:      11,
+			expectedGetTodoItemsInput: 11,
+			expectedDeleteItemsInput:  []model.TodoItemID{33},
+			expectedUpdateItemInputs: []model.TodoItemSave{
+				{
+					ID:   44,
+					Name: "new item 1",
+				},
+				{
+					ID:   55,
+					Name: "new item 2",
+				},
+			},
+			expectedCreateItemInputs: []model.TodoItemSave{
+				{
+					TodoID: 11,
+					Name:   "new item 3",
+				},
+			},
+			expectedUpdateTodoInput: model.TodoSave{
+				ID:   11,
+				Name: "new todo",
+			},
+			expectedAddEventInput: types.Event{
+				ID:       0,
+				Sequence: 0,
+				Data: &todoapp_rpc.Event{
+					Type: todoapp_rpc.EventType_EVENT_TYPE_TODO_SAVE,
+					TodoSave: &todoapp_rpc.EventTodoSave{
+						Id:   11,
+						Name: "new todo",
+					},
+				},
+			}.ToModel(),
+
+			expectedErr: nil,
+			expectedID:  11,
 		},
 	}
 
 	for _, e := range table {
 		t.Run(e.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
+			var getTodoInput model.TodoID
+			var getTodoItemsInput model.TodoID
+			var updateTodoInput model.TodoSave
+			var deleteItemsInput []model.TodoItemID
+			var updateItemInputs []model.TodoItemSave
+			var createItemInputs []model.TodoItemSave
+			var addEventInput model.Event
 
-			repo := types_mocks.NewMockRepository(ctrl)
-			tx := mockTransact(ctrl, repo)
-
-			if e.expectedCall != nil {
-				// txn.EXPECT().GetTodo(gomock.Any(), model.TodoID(0)).Return(model.NullTodo{}, nil)
-				e.expectedCall(tx)
-			}
-
-			s := NewService(repo, nil)
-
-			ctx := context.Background()
-			id, err := s.SaveTodo(ctx, e.input)
+			id, err := saveTodoTx(
+				context.Background(), e.input,
+				func(ctx context.Context, id model.TodoID) (model.NullTodo, error) {
+					getTodoInput = id
+					return e.getTodoOutput.nullTodo, e.getTodoOutput.err
+				},
+				func(ctx context.Context, todoID model.TodoID) ([]model.TodoItem, error) {
+					getTodoItemsInput = todoID
+					return e.getTodoItemsOutput.items, e.getTodoItemsOutput.err
+				},
+				nil,
+				func(ctx context.Context, save model.TodoSave) error {
+					updateTodoInput = save
+					return e.updateTodoOutput
+				},
+				func(ctx context.Context, itemIDs []model.TodoItemID) error {
+					deleteItemsInput = itemIDs
+					return e.deleteItemsOutput
+				},
+				func(ctx context.Context, item model.TodoItemSave) error {
+					index := len(updateItemInputs)
+					updateItemInputs = append(updateItemInputs, item)
+					return e.updateItemOutputs[index]
+				},
+				func(ctx context.Context, item model.TodoItemSave) (model.TodoItemID, error) {
+					index := len(createItemInputs)
+					createItemInputs = append(createItemInputs, item)
+					return 0, e.createItemOutputs[index]
+				},
+				func(ctx context.Context, event model.Event) (model.EventID, error) {
+					addEventInput = event
+					return e.addEventOutput.eventID, e.addEventOutput.err
+				},
+			)
 
 			assert.Equal(t, e.expectedErr, err)
 			assert.Equal(t, e.expectedID, id)
+
+			assert.Equal(t, e.expectedGetTodoInput, getTodoInput)
+			assert.Equal(t, e.expectedGetTodoItemsInput, getTodoItemsInput)
+			assert.Equal(t, e.expectedUpdateTodoInput, updateTodoInput)
+			assert.Equal(t, e.expectedDeleteItemsInput, deleteItemsInput)
+			assert.Equal(t, e.expectedUpdateItemInputs, updateItemInputs)
+			assert.Equal(t, e.expectedCreateItemInputs, createItemInputs)
+			assert.Equal(t, e.expectedAddEventInput, addEventInput)
 		})
 	}
 

@@ -1,4 +1,7 @@
 package config
 
-var BuildDate string = ""
-var GitCommit string = ""
+// BuildDate ...
+var BuildDate = ""
+
+// GitCommit ...
+var GitCommit = ""
