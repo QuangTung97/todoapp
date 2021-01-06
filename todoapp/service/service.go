@@ -26,23 +26,11 @@ func NewService(repo types.Repository, client types.EventClient) *Service {
 }
 
 func saveTodoTx(
-	ctx context.Context,
-	input types.SaveTodoInput,
-
-	getTodo func(ctx context.Context, id model.TodoID) (model.NullTodo, error),
-	getTodoItems func(ctx context.Context, todoID model.TodoID) ([]model.TodoItem, error),
-
-	insertTodo func(ctx context.Context, save model.TodoSave) (model.TodoID, error),
-	updateTodo func(ctx context.Context, save model.TodoSave) error,
-
-	deleteItems func(ctx context.Context, itemIDs []model.TodoItemID) error,
-	updateItem func(ctx context.Context, item model.TodoItemSave) error,
-	insertItem func(ctx context.Context, item model.TodoItemSave) (model.TodoItemID, error),
-
-	insertEvent func(ctx context.Context, event model.Event) (model.EventID, error),
+	ctx context.Context, input types.SaveTodoInput,
+	tx types.TxnRepository, eventTx types.EventTxnRepository,
 ) (model.TodoID, error) {
 	if input.ID == 0 {
-		id, err := insertTodo(ctx, model.TodoSave{
+		id, err := tx.InsertTodo(ctx, model.TodoSave{
 			Name: input.Name,
 		})
 		if err != nil {
@@ -50,7 +38,7 @@ func saveTodoTx(
 		}
 
 		for _, item := range input.Items {
-			_, err := insertItem(ctx, model.TodoItemSave{
+			_, err := tx.InsertTodoItem(ctx, model.TodoItemSave{
 				TodoID: id,
 				Name:   item.Name,
 			})
@@ -69,7 +57,7 @@ func saveTodoTx(
 			},
 		}
 
-		_, err = insertEvent(ctx, event.ToModel())
+		_, err = eventTx.InsertEvent(ctx, event.ToModel())
 		if err != nil {
 			return 0, err
 		}
@@ -77,7 +65,7 @@ func saveTodoTx(
 		return id, nil
 	}
 
-	nullTodo, err := getTodo(ctx, input.ID)
+	nullTodo, err := tx.GetTodo(ctx, input.ID)
 	if err != nil {
 		return 0, err
 	}
@@ -85,15 +73,7 @@ func saveTodoTx(
 		return 0, errors.Todo.NotFoundTodo.Err()
 	}
 
-	items, err := getTodoItems(ctx, input.ID)
-	if err != nil {
-		return 0, err
-	}
-
-	err = updateTodo(ctx, model.TodoSave{
-		ID:   input.ID,
-		Name: input.Name,
-	})
+	items, err := tx.GetTodoItemsByTodoID(ctx, input.ID)
 	if err != nil {
 		return 0, err
 	}
@@ -103,20 +83,28 @@ func saveTodoTx(
 		return 0, err
 	}
 
-	err = deleteItems(ctx, actions.DeletedItems)
+	err = tx.UpdateTodo(ctx, model.TodoSave{
+		ID:   input.ID,
+		Name: input.Name,
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	err = tx.DeleteTodoItems(ctx, actions.DeletedItems)
 	if err != nil {
 		return 0, err
 	}
 
 	for _, item := range actions.UpdatedItems {
-		err := updateItem(ctx, item)
+		err := tx.UpdateTodoITem(ctx, item)
 		if err != nil {
 			return 0, err
 		}
 	}
 
 	for _, item := range actions.InsertedItems {
-		_, err := insertItem(ctx, item)
+		_, err := tx.InsertTodoItem(ctx, item)
 		if err != nil {
 			return 0, err
 		}
@@ -132,7 +120,7 @@ func saveTodoTx(
 		},
 	}
 
-	_, err = insertEvent(ctx, event.ToModel())
+	_, err = eventTx.InsertEvent(ctx, event.ToModel())
 	if err != nil {
 		return 0, err
 	}
@@ -146,10 +134,7 @@ func (s *Service) SaveTodo(ctx context.Context, input types.SaveTodoInput) (mode
 	err := s.repo.Transact(ctx, func(tx types.TxnRepository) error {
 		id, err := saveTodoTx(
 			ctx, input,
-			tx.GetTodo, tx.GetTodoItemsByTodoID,
-			tx.InsertTodo, tx.UpdateTodo,
-			tx.DeleteTodoItems, tx.UpdateTodoITem, tx.InsertTodoItem,
-			tx.ToEventRepository().InsertEvent,
+			tx, tx.ToEventRepository(),
 		)
 		if err != nil {
 			return err
