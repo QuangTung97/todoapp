@@ -140,10 +140,6 @@ func saveTodoTx(
 	return input.ID, nil
 }
 
-func saveTodoValidateInput(input types.SaveTodoInput) error {
-	return nil
-}
-
 // SaveTodo ...
 func (s *Service) SaveTodo(ctx context.Context, input types.SaveTodoInput) (model.TodoID, error) {
 	todoID := input.ID

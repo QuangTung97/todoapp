@@ -10,7 +10,7 @@ import (
 	"todoapp/todoapp/types"
 )
 
-func TestTodoSaveTx_Update(t *testing.T) {
+func TestTodoSaveTx(t *testing.T) {
 	type getTodoOutput struct {
 		nullTodo model.NullTodo
 		err      error
@@ -19,6 +19,11 @@ func TestTodoSaveTx_Update(t *testing.T) {
 	type getTodoItemsOutput struct {
 		items []model.TodoItem
 		err   error
+	}
+
+	type insertTodoOutput struct {
+		todoID model.TodoID
+		err    error
 	}
 
 	type addEventOutput struct {
@@ -32,6 +37,7 @@ func TestTodoSaveTx_Update(t *testing.T) {
 
 		getTodoOutput      getTodoOutput
 		getTodoItemsOutput getTodoItemsOutput
+		insertTodoOutput   insertTodoOutput
 		updateTodoOutput   error
 		deleteItemsOutput  error
 		updateItemOutputs  []error
@@ -40,6 +46,7 @@ func TestTodoSaveTx_Update(t *testing.T) {
 
 		expectedGetTodoInput      model.TodoID
 		expectedGetTodoItemsInput model.TodoID
+		expectedInsertInput       model.TodoSave
 		expectedUpdateTodoInput   model.TodoSave
 		expectedDeleteItemsInput  []model.TodoItemID
 		expectedUpdateItemInputs  []model.TodoItemSave
@@ -503,12 +510,179 @@ func TestTodoSaveTx_Update(t *testing.T) {
 			expectedErr: nil,
 			expectedID:  11,
 		},
+		{
+			name: "insert-todo-ok",
+			input: types.SaveTodoInput{
+				ID:   0,
+				Name: "new todo create",
+				Items: []types.SaveTodoItem{
+					{
+						Name: "new item 4",
+					},
+					{
+						Name: "new item 5",
+					},
+				},
+			},
+
+			insertTodoOutput: insertTodoOutput{
+				todoID: 123,
+				err:    nil,
+			},
+			createItemOutputs: []error{nil, nil},
+			addEventOutput:    addEventOutput{},
+
+			expectedInsertInput: model.TodoSave{
+				Name: "new todo create",
+			},
+			expectedCreateItemInputs: []model.TodoItemSave{
+				{
+					TodoID: 123,
+					Name:   "new item 4",
+				},
+				{
+					TodoID: 123,
+					Name:   "new item 5",
+				},
+			},
+			expectedAddEventInput: types.Event{
+				ID:       0,
+				Sequence: 0,
+				Data: &todoapp_rpc.Event{
+					Type: todoapp_rpc.EventType_EVENT_TYPE_TODO_SAVE,
+					TodoSave: &todoapp_rpc.EventTodoSave{
+						Id:   123,
+						Name: "new todo create",
+					},
+				},
+			}.ToModel(),
+
+			expectedErr: nil,
+			expectedID:  123,
+		},
+		{
+			name: "insert-todo-error",
+			input: types.SaveTodoInput{
+				ID:   0,
+				Name: "new todo create",
+				Items: []types.SaveTodoItem{
+					{
+						Name: "new item 4",
+					},
+					{
+						Name: "new item 5",
+					},
+				},
+			},
+
+			insertTodoOutput: insertTodoOutput{
+				err: errors.General.InternalErrorAccessingDatabase.Err(),
+			},
+			createItemOutputs: []error{nil, nil},
+			addEventOutput:    addEventOutput{},
+
+			expectedInsertInput: model.TodoSave{
+				Name: "new todo create",
+			},
+
+			expectedErr: errors.General.InternalErrorAccessingDatabase.Err(),
+		},
+		{
+			name: "insert-todo-insert-items-error",
+			input: types.SaveTodoInput{
+				ID:   0,
+				Name: "new todo create",
+				Items: []types.SaveTodoItem{
+					{
+						Name: "new item 4",
+					},
+					{
+						Name: "new item 5",
+					},
+				},
+			},
+
+			insertTodoOutput: insertTodoOutput{
+				todoID: 233,
+				err:    nil,
+			},
+			createItemOutputs: []error{nil, errors.General.InternalErrorAccessingDatabase.Err()},
+			addEventOutput:    addEventOutput{},
+
+			expectedInsertInput: model.TodoSave{
+				Name: "new todo create",
+			},
+			expectedCreateItemInputs: []model.TodoItemSave{
+				{
+					TodoID: 233,
+					Name:   "new item 4",
+				},
+				{
+					TodoID: 233,
+					Name:   "new item 5",
+				},
+			},
+
+			expectedErr: errors.General.InternalErrorAccessingDatabase.Err(),
+		},
+		{
+			name: "insert-todo-add-event-error",
+			input: types.SaveTodoInput{
+				ID:   0,
+				Name: "new todo create",
+				Items: []types.SaveTodoItem{
+					{
+						Name: "new item 4",
+					},
+					{
+						Name: "new item 5",
+					},
+				},
+			},
+
+			insertTodoOutput: insertTodoOutput{
+				todoID: 233,
+				err:    nil,
+			},
+			createItemOutputs: []error{nil, nil},
+			addEventOutput: addEventOutput{
+				err: errors.General.InternalErrorAccessingDatabase.Err(),
+			},
+
+			expectedInsertInput: model.TodoSave{
+				Name: "new todo create",
+			},
+			expectedCreateItemInputs: []model.TodoItemSave{
+				{
+					TodoID: 233,
+					Name:   "new item 4",
+				},
+				{
+					TodoID: 233,
+					Name:   "new item 5",
+				},
+			},
+			expectedAddEventInput: types.Event{
+				ID:       0,
+				Sequence: 0,
+				Data: &todoapp_rpc.Event{
+					Type: todoapp_rpc.EventType_EVENT_TYPE_TODO_SAVE,
+					TodoSave: &todoapp_rpc.EventTodoSave{
+						Id:   233,
+						Name: "new todo create",
+					},
+				},
+			}.ToModel(),
+
+			expectedErr: errors.General.InternalErrorAccessingDatabase.Err(),
+		},
 	}
 
 	for _, e := range table {
 		t.Run(e.name, func(t *testing.T) {
 			var getTodoInput model.TodoID
 			var getTodoItemsInput model.TodoID
+			var insertTodoInput model.TodoSave
 			var updateTodoInput model.TodoSave
 			var deleteItemsInput []model.TodoItemID
 			var updateItemInputs []model.TodoItemSave
@@ -525,7 +699,10 @@ func TestTodoSaveTx_Update(t *testing.T) {
 					getTodoItemsInput = todoID
 					return e.getTodoItemsOutput.items, e.getTodoItemsOutput.err
 				},
-				nil,
+				func(ctx context.Context, save model.TodoSave) (model.TodoID, error) {
+					insertTodoInput = save
+					return e.insertTodoOutput.todoID, e.insertTodoOutput.err
+				},
 				func(ctx context.Context, save model.TodoSave) error {
 					updateTodoInput = save
 					return e.updateTodoOutput
@@ -555,6 +732,7 @@ func TestTodoSaveTx_Update(t *testing.T) {
 
 			assert.Equal(t, e.expectedGetTodoInput, getTodoInput)
 			assert.Equal(t, e.expectedGetTodoItemsInput, getTodoItemsInput)
+			assert.Equal(t, e.expectedInsertInput, insertTodoInput)
 			assert.Equal(t, e.expectedUpdateTodoInput, updateTodoInput)
 			assert.Equal(t, e.expectedDeleteItemsInput, deleteItemsInput)
 			assert.Equal(t, e.expectedUpdateItemInputs, updateItemInputs)
