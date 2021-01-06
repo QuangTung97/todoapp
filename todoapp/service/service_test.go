@@ -740,5 +740,4 @@ func TestTodoSaveTx(t *testing.T) {
 			assert.Equal(t, e.expectedAddEventInput, addEventInput)
 		})
 	}
-
 }

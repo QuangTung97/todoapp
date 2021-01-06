@@ -1,5 +1,7 @@
 //go:generate mockgen -destination=../mocks/repository.go -package=types_mocks . Repository
 //go:generate mockgen -destination=../mocks/txn_repository.go -package=types_mocks . TxnRepository
+//go:generate mockgen -destination=../mocks/event_txn_repository.go -package=types_mocks . EventTxnRepository
+//go:generate mockgen -destination=../mocks/event_client.go -package=types_mocks . EventClient
 
 package types
 
