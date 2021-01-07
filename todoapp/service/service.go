@@ -43,7 +43,7 @@ func saveTodoTx(
 	tx types.TxnRepository, eventTx types.EventTxnRepository,
 ) (model.TodoID, error) {
 	if input.ID == 0 {
-		id, err := tx.InsertTodo(ctx, model.TodoSave{
+		id, err := tx.InsertTodo(ctx, model.Todo{
 			Name: input.Name,
 		})
 		if err != nil {
@@ -51,10 +51,8 @@ func saveTodoTx(
 		}
 
 		for _, item := range input.Items {
-			_, err := tx.InsertTodoItem(ctx, model.TodoItemSave{
-				TodoID: id,
-				Name:   item.Name,
-			})
+			item.TodoID = id
+			_, err := tx.InsertTodoItem(ctx, item)
 			if err != nil {
 				return 0, err
 			}
@@ -87,7 +85,7 @@ func saveTodoTx(
 		return 0, err
 	}
 
-	err = tx.UpdateTodo(ctx, model.TodoSave{
+	err = tx.UpdateTodo(ctx, model.Todo{
 		ID:   input.ID,
 		Name: input.Name,
 	})

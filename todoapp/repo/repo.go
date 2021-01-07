@@ -76,7 +76,7 @@ INSERT INTO todos (name) VALUES (:name)
 `)
 
 // InsertTodo ...
-func (r *TxnRepository) InsertTodo(ctx context.Context, save model.TodoSave) (model.TodoID, error) {
+func (r *TxnRepository) InsertTodo(ctx context.Context, save model.Todo) (model.TodoID, error) {
 	res, err := r.tx.NamedExecContext(ctx, insertTodoQuery, save)
 	if err != nil {
 		return 0, errors.WrapDBError(ctx, err)
@@ -95,7 +95,7 @@ WHERE id = :id
 `)
 
 // UpdateTodo ...
-func (r *TxnRepository) UpdateTodo(ctx context.Context, save model.TodoSave) error {
+func (r *TxnRepository) UpdateTodo(ctx context.Context, save model.Todo) error {
 	_, err := r.tx.NamedExecContext(ctx, updateTodoQuery, save)
 	if err != nil {
 		return errors.WrapDBError(ctx, err)
@@ -142,7 +142,7 @@ INSERT INTO todo_items (todo_id, name) VALUES (:todo_id, :name)
 `)
 
 // InsertTodoItem ...
-func (r *TxnRepository) InsertTodoItem(ctx context.Context, save model.TodoItemSave,
+func (r *TxnRepository) InsertTodoItem(ctx context.Context, save model.TodoItem,
 ) (model.TodoItemID, error) {
 	res, err := r.tx.NamedExecContext(ctx, insertTodoItemQuery, save)
 	if err != nil {
@@ -160,7 +160,7 @@ UPDATE todo_items SET name = :name WHERE id = :id
 `)
 
 // UpdateTodoITem ...
-func (r *TxnRepository) UpdateTodoITem(ctx context.Context, save model.TodoItemSave) error {
+func (r *TxnRepository) UpdateTodoITem(ctx context.Context, save model.TodoItem) error {
 	_, err := r.tx.NamedExecContext(ctx, updateTodoItemQuery, save)
 	if err != nil {
 		return errors.WrapDBError(ctx, err)

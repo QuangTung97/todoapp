@@ -33,7 +33,7 @@ func TestService_SaveTodo_Update_Error(t *testing.T) {
 	id, err := s.SaveTodo(context.Background(), types.SaveTodoInput{
 		ID:   123,
 		Name: "some save todo",
-		Items: []types.SaveTodoItem{
+		Items: []model.TodoItem{
 			{
 				ID:   12,
 				Name: "some item",
@@ -55,7 +55,7 @@ func TestService_SaveTodo_Insert_OK(t *testing.T) {
 
 	input := types.SaveTodoInput{
 		Name: "some save todo",
-		Items: []types.SaveTodoItem{
+		Items: []model.TodoItem{
 			{
 				Name: "some item",
 			},
@@ -63,10 +63,10 @@ func TestService_SaveTodo_Insert_OK(t *testing.T) {
 	}
 
 	mockTx.EXPECT().ToEventRepository().Return(mockEventRepo)
-	service.InsertTodoHelper(mockTx, model.TodoSave{
+	service.InsertTodoHelper(mockTx, model.Todo{
 		Name: "some save todo",
 	}, 555, nil)
-	service.InsertItemHelper(mockTx, model.TodoItemSave{
+	service.InsertItemHelper(mockTx, model.TodoItem{
 		TodoID: 555,
 		Name:   "some item",
 	}, 33, nil)

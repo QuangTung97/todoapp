@@ -29,7 +29,7 @@ func GetTodoItemsHelper(
 
 func UpdateTodoHelper(
 	tx *types_mocks.MockTxnRepository,
-	save model.TodoSave, err error,
+	save model.Todo, err error,
 ) *gomock.Call {
 	return tx.EXPECT().UpdateTodo(gomock.Any(), save).Return(err)
 }
@@ -43,21 +43,21 @@ func DeleteItemsHelper(
 
 func UpdateItemHelper(
 	tx *types_mocks.MockTxnRepository,
-	item model.TodoItemSave, err error,
+	item model.TodoItem, err error,
 ) *gomock.Call {
 	return tx.EXPECT().UpdateTodoITem(gomock.Any(), item).Return(err)
 }
 
 func InsertItemHelper(
 	tx *types_mocks.MockTxnRepository,
-	item model.TodoItemSave, id model.TodoItemID, err error,
+	item model.TodoItem, id model.TodoItemID, err error,
 ) *gomock.Call {
 	return tx.EXPECT().InsertTodoItem(gomock.Any(), item).Return(id, err)
 }
 
 func InsertTodoHelper(
 	tx *types_mocks.MockTxnRepository,
-	todo model.TodoSave, id model.TodoID, err error,
+	todo model.Todo, id model.TodoID, err error,
 ) *gomock.Call {
 	return tx.EXPECT().InsertTodo(gomock.Any(), todo).Return(id, err)
 }
@@ -135,7 +135,7 @@ func TestTodoSaveTx_Error(t *testing.T) {
 				}
 				GetTodoHelper(tx, 11, nullTodo, nil)
 				GetTodoItemsHelper(tx, 11, nil, nil)
-				UpdateTodoHelper(tx, model.TodoSave{
+				UpdateTodoHelper(tx, model.Todo{
 					ID:   11,
 					Name: "new todo",
 				}, errors.General.InternalErrorAccessingDatabase.Err())
@@ -161,7 +161,7 @@ func TestTodoSaveTx_Error(t *testing.T) {
 					{ID: 33},
 					{ID: 44},
 				}, nil)
-				UpdateTodoHelper(tx, model.TodoSave{
+				UpdateTodoHelper(tx, model.Todo{
 					ID:   11,
 					Name: "new todo",
 				}, nil)
@@ -190,7 +190,7 @@ func TestTodoSaveTx_Error(t *testing.T) {
 					{ID: 33},
 					{ID: 44},
 				}, nil)
-				UpdateTodoHelper(tx, model.TodoSave{
+				UpdateTodoHelper(tx, model.Todo{
 					ID:   11,
 					Name: "new todo",
 				}, nil)
@@ -207,7 +207,7 @@ func TestTodoSaveTx_Error(t *testing.T) {
 			input: types.SaveTodoInput{
 				ID:   11,
 				Name: "new todo",
-				Items: []types.SaveTodoItem{
+				Items: []model.TodoItem{
 					{
 						ID:   44,
 						Name: "new item 1",
@@ -239,7 +239,7 @@ func TestTodoSaveTx_Error(t *testing.T) {
 			input: types.SaveTodoInput{
 				ID:   11,
 				Name: "new todo",
-				Items: []types.SaveTodoItem{
+				Items: []model.TodoItem{
 					{
 						ID:   44,
 						Name: "new item 1",
@@ -264,14 +264,14 @@ func TestTodoSaveTx_Error(t *testing.T) {
 					{ID: 44},
 					{ID: 55},
 				}, nil)
-				UpdateTodoHelper(tx, model.TodoSave{
+				UpdateTodoHelper(tx, model.Todo{
 					ID:   11,
 					Name: "new todo",
 				}, nil)
 
 				DeleteItemsHelper(tx, []model.TodoItemID{33}, nil)
 
-				UpdateItemHelper(tx, model.TodoItemSave{
+				UpdateItemHelper(tx, model.TodoItem{
 					ID:   44,
 					Name: "new item 1",
 				}, errors.General.InternalErrorAccessingDatabase.Err())
@@ -283,7 +283,7 @@ func TestTodoSaveTx_Error(t *testing.T) {
 			input: types.SaveTodoInput{
 				ID:   11,
 				Name: "new todo",
-				Items: []types.SaveTodoItem{
+				Items: []model.TodoItem{
 					{
 						ID:   44,
 						Name: "new item 1",
@@ -311,7 +311,7 @@ func TestTodoSaveTx_Error(t *testing.T) {
 					{ID: 44},
 					{ID: 55},
 				}, nil)
-				UpdateTodoHelper(tx, model.TodoSave{
+				UpdateTodoHelper(tx, model.Todo{
 					ID:   11,
 					Name: "new todo",
 				}, nil)
@@ -319,16 +319,16 @@ func TestTodoSaveTx_Error(t *testing.T) {
 				DeleteItemsHelper(tx, []model.TodoItemID{33}, nil)
 
 				gomock.InOrder(
-					UpdateItemHelper(tx, model.TodoItemSave{
+					UpdateItemHelper(tx, model.TodoItem{
 						ID:   44,
 						Name: "new item 1",
 					}, nil),
-					UpdateItemHelper(tx, model.TodoItemSave{
+					UpdateItemHelper(tx, model.TodoItem{
 						ID:   55,
 						Name: "new item 2",
 					}, nil),
 				)
-				InsertItemHelper(tx, model.TodoItemSave{
+				InsertItemHelper(tx, model.TodoItem{
 					TodoID: 11,
 					Name:   "new item 3",
 				}, 0, errors.General.InternalErrorAccessingDatabase.Err())
@@ -340,7 +340,7 @@ func TestTodoSaveTx_Error(t *testing.T) {
 			input: types.SaveTodoInput{
 				ID:   11,
 				Name: "new todo",
-				Items: []types.SaveTodoItem{
+				Items: []model.TodoItem{
 					{
 						ID:   44,
 						Name: "new item 1",
@@ -368,7 +368,7 @@ func TestTodoSaveTx_Error(t *testing.T) {
 					{ID: 44},
 					{ID: 55},
 				}, nil)
-				UpdateTodoHelper(tx, model.TodoSave{
+				UpdateTodoHelper(tx, model.Todo{
 					ID:   11,
 					Name: "new todo",
 				}, nil)
@@ -376,16 +376,16 @@ func TestTodoSaveTx_Error(t *testing.T) {
 				DeleteItemsHelper(tx, []model.TodoItemID{33}, nil)
 
 				gomock.InOrder(
-					UpdateItemHelper(tx, model.TodoItemSave{
+					UpdateItemHelper(tx, model.TodoItem{
 						ID:   44,
 						Name: "new item 1",
 					}, nil),
-					UpdateItemHelper(tx, model.TodoItemSave{
+					UpdateItemHelper(tx, model.TodoItem{
 						ID:   55,
 						Name: "new item 2",
 					}, nil),
 				)
-				InsertItemHelper(tx, model.TodoItemSave{
+				InsertItemHelper(tx, model.TodoItem{
 					TodoID: 11,
 					Name:   "new item 3",
 				}, 0, nil)
@@ -400,7 +400,7 @@ func TestTodoSaveTx_Error(t *testing.T) {
 			input: types.SaveTodoInput{
 				ID:   0,
 				Name: "new todo create",
-				Items: []types.SaveTodoItem{
+				Items: []model.TodoItem{
 					{
 						Name: "new item 4",
 					},
@@ -410,7 +410,7 @@ func TestTodoSaveTx_Error(t *testing.T) {
 				},
 			},
 			expectCall: func(e testCase, tx *types_mocks.MockTxnRepository, eventTx *types_mocks.MockEventTxnRepository) {
-				InsertTodoHelper(tx, model.TodoSave{
+				InsertTodoHelper(tx, model.Todo{
 					Name: "new todo create",
 				}, 0, errors.General.InternalErrorAccessingDatabase.Err())
 			},
@@ -421,7 +421,7 @@ func TestTodoSaveTx_Error(t *testing.T) {
 			input: types.SaveTodoInput{
 				ID:   0,
 				Name: "new todo create",
-				Items: []types.SaveTodoItem{
+				Items: []model.TodoItem{
 					{
 						Name: "new item 4",
 					},
@@ -431,11 +431,11 @@ func TestTodoSaveTx_Error(t *testing.T) {
 				},
 			},
 			expectCall: func(e testCase, tx *types_mocks.MockTxnRepository, eventTx *types_mocks.MockEventTxnRepository) {
-				InsertTodoHelper(tx, model.TodoSave{
+				InsertTodoHelper(tx, model.Todo{
 					Name: "new todo create",
 				}, 55, nil)
 
-				InsertItemHelper(tx, model.TodoItemSave{
+				InsertItemHelper(tx, model.TodoItem{
 					TodoID: 55,
 					Name:   "new item 4",
 				}, 1, errors.General.InternalErrorAccessingDatabase.Err())
@@ -447,7 +447,7 @@ func TestTodoSaveTx_Error(t *testing.T) {
 			input: types.SaveTodoInput{
 				ID:   0,
 				Name: "new todo create",
-				Items: []types.SaveTodoItem{
+				Items: []model.TodoItem{
 					{
 						Name: "new item 4",
 					},
@@ -457,16 +457,16 @@ func TestTodoSaveTx_Error(t *testing.T) {
 				},
 			},
 			expectCall: func(e testCase, tx *types_mocks.MockTxnRepository, eventTx *types_mocks.MockEventTxnRepository) {
-				InsertTodoHelper(tx, model.TodoSave{
+				InsertTodoHelper(tx, model.Todo{
 					Name: "new todo create",
 				}, 55, nil)
 
 				gomock.InOrder(
-					InsertItemHelper(tx, model.TodoItemSave{
+					InsertItemHelper(tx, model.TodoItem{
 						TodoID: 55,
 						Name:   "new item 4",
 					}, 1, nil),
-					InsertItemHelper(tx, model.TodoItemSave{
+					InsertItemHelper(tx, model.TodoItem{
 						TodoID: 55,
 						Name:   "new item 5",
 					}, 2, nil),
@@ -484,7 +484,7 @@ func TestTodoSaveTx_Error(t *testing.T) {
 			input: types.SaveTodoInput{
 				ID:   0,
 				Name: "new todo create",
-				Items: []types.SaveTodoItem{
+				Items: []model.TodoItem{
 					{
 						Name: "new item 4",
 					},
@@ -494,16 +494,16 @@ func TestTodoSaveTx_Error(t *testing.T) {
 				},
 			},
 			expectCall: func(e testCase, tx *types_mocks.MockTxnRepository, eventTx *types_mocks.MockEventTxnRepository) {
-				InsertTodoHelper(tx, model.TodoSave{
+				InsertTodoHelper(tx, model.Todo{
 					Name: "new todo create",
 				}, 55, nil)
 
 				gomock.InOrder(
-					InsertItemHelper(tx, model.TodoItemSave{
+					InsertItemHelper(tx, model.TodoItem{
 						TodoID: 55,
 						Name:   "new item 4",
 					}, 1, nil),
-					InsertItemHelper(tx, model.TodoItemSave{
+					InsertItemHelper(tx, model.TodoItem{
 						TodoID: 55,
 						Name:   "new item 5",
 					}, 2, nil),

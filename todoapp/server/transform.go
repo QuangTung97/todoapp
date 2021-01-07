@@ -6,10 +6,10 @@ import (
 	"todoapp/todoapp/types"
 )
 
-func transformTodoItems(items []*todoapp_rpc.TodoItem) []types.SaveTodoItem {
-	result := make([]types.SaveTodoItem, 0, len(items))
+func transformTodoItems(items []*todoapp_rpc.TodoItem) []model.TodoItem {
+	result := make([]model.TodoItem, 0, len(items))
 	for _, i := range items {
-		result = append(result, types.SaveTodoItem{
+		result = append(result, model.TodoItem{
 			ID:   model.TodoItemID(i.Id),
 			Name: i.Name,
 		})

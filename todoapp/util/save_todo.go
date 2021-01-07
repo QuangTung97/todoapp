@@ -3,31 +3,28 @@ package util
 import (
 	"todoapp/pkg/errors"
 	"todoapp/todoapp/model"
-	"todoapp/todoapp/types"
 )
 
 // UpdateTodoActions ...
 type UpdateTodoActions struct {
 	DeletedItems  []model.TodoItemID
-	UpdatedItems  []model.TodoItemSave
-	InsertedItems []model.TodoItemSave
+	UpdatedItems  []model.TodoItem
+	InsertedItems []model.TodoItem
 }
 
 // ComputeUpdateTodoActions ...
 func ComputeUpdateTodoActions(
 	todoID model.TodoID,
 	dbItems []model.TodoItem,
-	inputItems []types.SaveTodoItem,
+	inputItems []model.TodoItem,
 ) (UpdateTodoActions, error) {
 	inputSet := make(map[model.TodoItemID]struct{})
 
-	var inserted []model.TodoItemSave
+	var inserted []model.TodoItem
 	for _, item := range inputItems {
 		if item.ID == 0 {
-			inserted = append(inserted, model.TodoItemSave{
-				TodoID: todoID,
-				Name:   item.Name,
-			})
+			item.TodoID = todoID
+			inserted = append(inserted, item)
 		} else {
 			inputSet[item.ID] = struct{}{}
 		}
@@ -46,7 +43,7 @@ func ComputeUpdateTodoActions(
 		}
 	}
 
-	var updated []model.TodoItemSave
+	var updated []model.TodoItem
 	for _, item := range inputItems {
 		if item.ID == 0 {
 			continue
@@ -56,7 +53,7 @@ func ComputeUpdateTodoActions(
 		if !existed {
 			return UpdateTodoActions{}, errors.Todo.NotFoundTodoItem.Err()
 		}
-		updated = append(updated, model.TodoItemSave{
+		updated = append(updated, model.TodoItem{
 			ID:   item.ID,
 			Name: item.Name,
 		})
