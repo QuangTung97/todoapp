@@ -5,62 +5,68 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"testing"
-	todoapp_rpc "todoapp-rpc/rpc/todoapp/v1"
 	"todoapp/pkg/errors"
 	types_mocks "todoapp/todoapp/mocks"
 	"todoapp/todoapp/model"
 	"todoapp/todoapp/types"
 )
 
-func TestTodoSaveTx_Insert_OK(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+func GetTodoHelper(
+	tx *types_mocks.MockTxnRepository,
+	id model.TodoID,
+	nullTodo model.NullTodo, err error,
+) *gomock.Call {
+	return tx.EXPECT().GetTodo(gomock.Any(), id).Return(nullTodo, err)
+}
 
-	tx := types_mocks.NewMockTxnRepository(ctrl)
-	eventTx := types_mocks.NewMockEventTxnRepository(ctrl)
+func GetTodoItemsHelper(
+	tx *types_mocks.MockTxnRepository,
+	todoID model.TodoID,
+	items []model.TodoItem, err error,
+) *gomock.Call {
+	return tx.EXPECT().GetTodoItemsByTodoID(gomock.Any(), todoID).Return(items, err)
+}
 
-	tx.EXPECT().InsertTodo(gomock.Any(), model.TodoSave{
-		Name: "some insert todo",
-	}).Return(model.TodoID(322), nil)
+func UpdateTodoHelper(
+	tx *types_mocks.MockTxnRepository,
+	save model.TodoSave, err error,
+) *gomock.Call {
+	return tx.EXPECT().UpdateTodo(gomock.Any(), save).Return(err)
+}
 
-	gomock.InOrder(
-		tx.EXPECT().InsertTodoItem(gomock.Any(),
-			model.TodoItemSave{
-				TodoID: 322,
-				Name:   "item insert 1",
-			},
-		).Return(model.TodoItemID(20), nil),
-		tx.EXPECT().InsertTodoItem(gomock.Any(),
-			model.TodoItemSave{
-				TodoID: 322,
-				Name:   "item insert 2",
-			},
-		).Return(model.TodoItemID(20), nil),
-	)
+func DeleteItemsHelper(
+	tx *types_mocks.MockTxnRepository,
+	itemIDs []model.TodoItemID, err error,
+) *gomock.Call {
+	return tx.EXPECT().DeleteTodoItems(gomock.Any(), itemIDs).Return(err)
+}
 
-	eventTx.EXPECT().InsertEvent(gomock.Any(), types.Event{
-		Data: &todoapp_rpc.Event{
-			Type: todoapp_rpc.EventType_EVENT_TYPE_TODO_SAVE,
-			TodoSave: &todoapp_rpc.EventTodoSave{
-				Id: 322,
-				Name: "some insert todo",
-			},
-		},
-	}.ToModel()).Return(model.EventID(55), nil)
+func UpdateItemHelper(
+	tx *types_mocks.MockTxnRepository,
+	item model.TodoItemSave, err error,
+) *gomock.Call {
+	return tx.EXPECT().UpdateTodoITem(gomock.Any(), item).Return(err)
+}
 
-	id, err := saveTodoTx(
-		context.Background(), types.SaveTodoInput{
-			Name: "some insert todo",
-			Items: []types.SaveTodoItem{
-				{Name: "item insert 1"},
-				{Name: "item insert 2"},
-			},
-		},
-		tx, eventTx,
-	)
+func InsertItemHelper(
+	tx *types_mocks.MockTxnRepository,
+	item model.TodoItemSave, id model.TodoItemID, err error,
+) *gomock.Call {
+	return tx.EXPECT().InsertTodoItem(gomock.Any(), item).Return(id, err)
+}
 
-	assert.Equal(t, nil, err)
-	assert.Equal(t, model.TodoID(322), id)
+func InsertTodoHelper(
+	tx *types_mocks.MockTxnRepository,
+	todo model.TodoSave, id model.TodoID, err error,
+) *gomock.Call {
+	return tx.EXPECT().InsertTodo(gomock.Any(), todo).Return(id, err)
+}
+
+func InsertEventHelper(
+	tx *types_mocks.MockEventTxnRepository,
+	event model.Event, id model.EventID, err error,
+) *gomock.Call {
+	return tx.EXPECT().InsertEvent(gomock.Any(), event).Return(id, err)
 }
 
 func TestTodoSaveTx_Error(t *testing.T) {
@@ -81,7 +87,7 @@ func TestTodoSaveTx_Error(t *testing.T) {
 				ID: 11,
 			},
 			expectCall: func(e testCase, tx *types_mocks.MockTxnRepository, eventTx *types_mocks.MockEventTxnRepository) {
-				tx.EXPECT().GetTodo(gomock.Any(), gomock.Any()).Return(model.NullTodo{}, nil)
+				GetTodoHelper(tx, 11, model.NullTodo{}, nil)
 			},
 			expectedErr: errors.Todo.NotFoundTodo.Err(),
 		},
@@ -91,8 +97,7 @@ func TestTodoSaveTx_Error(t *testing.T) {
 				ID: 11,
 			},
 			expectCall: func(e testCase, tx *types_mocks.MockTxnRepository, eventTx *types_mocks.MockEventTxnRepository) {
-				tx.EXPECT().GetTodo(gomock.Any(), gomock.Any()).
-					Return(model.NullTodo{}, errors.General.InternalErrorAccessingDatabase.Err())
+				GetTodoHelper(tx, 11, model.NullTodo{}, errors.General.InternalErrorAccessingDatabase.Err())
 			},
 			expectedErr: errors.General.InternalErrorAccessingDatabase.Err(),
 		},
@@ -102,17 +107,15 @@ func TestTodoSaveTx_Error(t *testing.T) {
 				ID: 11,
 			},
 			expectCall: func(e testCase, tx *types_mocks.MockTxnRepository, eventTx *types_mocks.MockEventTxnRepository) {
-				tx.EXPECT().GetTodo(gomock.Any(), gomock.Any()).
-					Return(model.NullTodo{
-						Valid: true,
-						Todo: model.Todo{
-							ID:   11,
-							Name: "Test todo",
-						},
-					}, nil)
-
-				tx.EXPECT().GetTodoItemsByTodoID(gomock.Any(), gomock.Any()).
-					Return(nil, errors.General.InternalErrorAccessingDatabase.Err())
+				nullTodo := model.NullTodo{
+					Valid: true,
+					Todo: model.Todo{
+						ID:   11,
+						Name: "Test todo",
+					},
+				}
+				GetTodoHelper(tx, 11, nullTodo, nil)
+				GetTodoItemsHelper(tx, 11, nil, errors.General.InternalErrorAccessingDatabase.Err())
 			},
 			expectedErr: errors.General.InternalErrorAccessingDatabase.Err(),
 		},
@@ -123,20 +126,19 @@ func TestTodoSaveTx_Error(t *testing.T) {
 				Name: "new todo",
 			},
 			expectCall: func(e testCase, tx *types_mocks.MockTxnRepository, eventTx *types_mocks.MockEventTxnRepository) {
-				tx.EXPECT().GetTodo(gomock.Any(), gomock.Any()).
-					Return(model.NullTodo{
-						Valid: true,
-						Todo: model.Todo{
-							ID:   11,
-							Name: "Test todo",
-						},
-					}, nil)
-
-				tx.EXPECT().GetTodoItemsByTodoID(gomock.Any(), gomock.Any()).
-					Return(nil, nil)
-
-				tx.EXPECT().UpdateTodo(gomock.Any(), gomock.Any()).
-					Return(errors.General.InternalErrorAccessingDatabase.Err())
+				nullTodo := model.NullTodo{
+					Valid: true,
+					Todo: model.Todo{
+						ID:   11,
+						Name: "Test todo",
+					},
+				}
+				GetTodoHelper(tx, 11, nullTodo, nil)
+				GetTodoItemsHelper(tx, 11, nil, nil)
+				UpdateTodoHelper(tx, model.TodoSave{
+					ID:   11,
+					Name: "new todo",
+				}, errors.General.InternalErrorAccessingDatabase.Err())
 			},
 			expectedErr: errors.General.InternalErrorAccessingDatabase.Err(),
 		},
@@ -147,26 +149,24 @@ func TestTodoSaveTx_Error(t *testing.T) {
 				Name: "new todo",
 			},
 			expectCall: func(e testCase, tx *types_mocks.MockTxnRepository, eventTx *types_mocks.MockEventTxnRepository) {
-				tx.EXPECT().GetTodo(gomock.Any(), gomock.Any()).
-					Return(model.NullTodo{
-						Valid: true,
-						Todo: model.Todo{
-							ID:   11,
-							Name: "Test todo",
-						},
-					}, nil)
+				nullTodo := model.NullTodo{
+					Valid: true,
+					Todo: model.Todo{
+						ID:   11,
+						Name: "Test todo",
+					},
+				}
+				GetTodoHelper(tx, 11, nullTodo, nil)
+				GetTodoItemsHelper(tx, 11, []model.TodoItem{
+					{ID: 33},
+					{ID: 44},
+				}, nil)
+				UpdateTodoHelper(tx, model.TodoSave{
+					ID:   11,
+					Name: "new todo",
+				}, nil)
 
-				tx.EXPECT().GetTodoItemsByTodoID(gomock.Any(), gomock.Any()).
-					Return([]model.TodoItem{
-						{ID: 33},
-						{ID: 44},
-					}, nil)
-
-				tx.EXPECT().UpdateTodo(gomock.Any(), gomock.Any()).
-					Return(nil)
-
-				tx.EXPECT().DeleteTodoItems(gomock.Any(), gomock.Any()).
-					Return(errors.General.InternalErrorAccessingDatabase.Err())
+				DeleteItemsHelper(tx, []model.TodoItemID{33, 44}, errors.General.InternalErrorAccessingDatabase.Err())
 			},
 
 			expectedErr: errors.General.InternalErrorAccessingDatabase.Err(),
@@ -178,29 +178,27 @@ func TestTodoSaveTx_Error(t *testing.T) {
 				Name: "new todo",
 			},
 			expectCall: func(e testCase, tx *types_mocks.MockTxnRepository, eventTx *types_mocks.MockEventTxnRepository) {
-				tx.EXPECT().GetTodo(gomock.Any(), gomock.Any()).
-					Return(model.NullTodo{
-						Valid: true,
-						Todo: model.Todo{
-							ID:   11,
-							Name: "Test todo",
-						},
-					}, nil)
+				nullTodo := model.NullTodo{
+					Valid: true,
+					Todo: model.Todo{
+						ID:   11,
+						Name: "Test todo",
+					},
+				}
+				GetTodoHelper(tx, 11, nullTodo, nil)
+				GetTodoItemsHelper(tx, 11, []model.TodoItem{
+					{ID: 33},
+					{ID: 44},
+				}, nil)
+				UpdateTodoHelper(tx, model.TodoSave{
+					ID:   11,
+					Name: "new todo",
+				}, nil)
 
-				tx.EXPECT().GetTodoItemsByTodoID(gomock.Any(), gomock.Any()).
-					Return([]model.TodoItem{
-						{ID: 33},
-						{ID: 44},
-					}, nil)
+				DeleteItemsHelper(tx, []model.TodoItemID{33, 44}, nil)
 
-				tx.EXPECT().UpdateTodo(gomock.Any(), gomock.Any()).
-					Return(nil)
-
-				tx.EXPECT().DeleteTodoItems(gomock.Any(), gomock.Any()).
-					Return(nil)
-
-				eventTx.EXPECT().InsertEvent(gomock.Any(), gomock.Any()).
-					Return(model.EventID(0), errors.General.InternalErrorAccessingDatabase.Err())
+				InsertEventHelper(eventTx, BuildTodoSaveEvent(e.input), 21,
+					errors.General.InternalErrorAccessingDatabase.Err())
 			},
 			expectedErr: errors.General.InternalErrorAccessingDatabase.Err(),
 		},
@@ -221,22 +219,19 @@ func TestTodoSaveTx_Error(t *testing.T) {
 				},
 			},
 			expectCall: func(e testCase, tx *types_mocks.MockTxnRepository, eventTx *types_mocks.MockEventTxnRepository) {
-				tx.EXPECT().GetTodo(gomock.Any(), gomock.Any()).
-					Return(model.NullTodo{
-						Valid: true,
-						Todo: model.Todo{
-							ID:   11,
-							Name: "Test todo",
-						},
-					}, nil)
-
-				tx.EXPECT().GetTodoItemsByTodoID(gomock.Any(), gomock.Any()).
-					Return([]model.TodoItem{
-						{ID: 33},
-						{ID: 44},
-					}, nil)
+				nullTodo := model.NullTodo{
+					Valid: true,
+					Todo: model.Todo{
+						ID:   11,
+						Name: "Test todo",
+					},
+				}
+				GetTodoHelper(tx, 11, nullTodo, nil)
+				GetTodoItemsHelper(tx, 11, []model.TodoItem{
+					{ID: 33},
+					{ID: 44},
+				}, nil)
 			},
-
 			expectedErr: errors.Todo.NotFoundTodoItem.Err(),
 		},
 		{
@@ -256,29 +251,30 @@ func TestTodoSaveTx_Error(t *testing.T) {
 				},
 			},
 			expectCall: func(e testCase, tx *types_mocks.MockTxnRepository, eventTx *types_mocks.MockEventTxnRepository) {
-				tx.EXPECT().GetTodo(gomock.Any(), gomock.Any()).
-					Return(model.NullTodo{
-						Valid: true,
-						Todo: model.Todo{
-							ID:   11,
-							Name: "Test todo",
-						},
-					}, nil)
+				nullTodo := model.NullTodo{
+					Valid: true,
+					Todo: model.Todo{
+						ID:   11,
+						Name: "Test todo",
+					},
+				}
+				GetTodoHelper(tx, 11, nullTodo, nil)
+				GetTodoItemsHelper(tx, 11, []model.TodoItem{
+					{ID: 33},
+					{ID: 44},
+					{ID: 55},
+				}, nil)
+				UpdateTodoHelper(tx, model.TodoSave{
+					ID:   11,
+					Name: "new todo",
+				}, nil)
 
-				tx.EXPECT().GetTodoItemsByTodoID(gomock.Any(), gomock.Any()).
-					Return([]model.TodoItem{
-						{ID: 33},
-						{ID: 44},
-						{ID: 55},
-					}, nil)
+				DeleteItemsHelper(tx, []model.TodoItemID{33}, nil)
 
-				tx.EXPECT().UpdateTodo(gomock.Any(), gomock.Any()).
-					Return(nil)
-
-				tx.EXPECT().DeleteTodoItems(gomock.Any(), gomock.Any()).
-					Return(nil)
-
-				tx.EXPECT().UpdateTodoITem(gomock.Any(), gomock.Any()).Return(errors.General.InternalErrorAccessingDatabase.Err())
+				UpdateItemHelper(tx, model.TodoItemSave{
+					ID:   44,
+					Name: "new item 1",
+				}, errors.General.InternalErrorAccessingDatabase.Err())
 			},
 			expectedErr: errors.General.InternalErrorAccessingDatabase.Err(),
 		},
@@ -302,34 +298,102 @@ func TestTodoSaveTx_Error(t *testing.T) {
 				},
 			},
 			expectCall: func(e testCase, tx *types_mocks.MockTxnRepository, eventTx *types_mocks.MockEventTxnRepository) {
-				tx.EXPECT().GetTodo(gomock.Any(), gomock.Any()).
-					Return(model.NullTodo{
-						Valid: true,
-						Todo: model.Todo{
-							ID:   11,
-							Name: "Test todo",
-						},
-					}, nil)
+				nullTodo := model.NullTodo{
+					Valid: true,
+					Todo: model.Todo{
+						ID:   11,
+						Name: "Test todo",
+					},
+				}
+				GetTodoHelper(tx, 11, nullTodo, nil)
+				GetTodoItemsHelper(tx, 11, []model.TodoItem{
+					{ID: 33},
+					{ID: 44},
+					{ID: 55},
+				}, nil)
+				UpdateTodoHelper(tx, model.TodoSave{
+					ID:   11,
+					Name: "new todo",
+				}, nil)
 
-				tx.EXPECT().GetTodoItemsByTodoID(gomock.Any(), gomock.Any()).
-					Return([]model.TodoItem{
-						{ID: 33},
-						{ID: 44},
-						{ID: 55},
-					}, nil)
+				DeleteItemsHelper(tx, []model.TodoItemID{33}, nil)
 
-				tx.EXPECT().UpdateTodo(gomock.Any(), gomock.Any()).
-					Return(nil)
-
-				tx.EXPECT().DeleteTodoItems(gomock.Any(), gomock.Any()).
-					Return(nil)
-
-				tx.EXPECT().UpdateTodoITem(gomock.Any(), gomock.Any()).Return(nil).Times(2)
-
-				tx.EXPECT().InsertTodoItem(gomock.Any(), gomock.Any()).
-					Return(model.TodoItemID(0), errors.General.InternalErrorAccessingDatabase.Err())
+				gomock.InOrder(
+					UpdateItemHelper(tx, model.TodoItemSave{
+						ID:   44,
+						Name: "new item 1",
+					}, nil),
+					UpdateItemHelper(tx, model.TodoItemSave{
+						ID:   55,
+						Name: "new item 2",
+					}, nil),
+				)
+				InsertItemHelper(tx, model.TodoItemSave{
+					TodoID: 11,
+					Name:   "new item 3",
+				}, 0, errors.General.InternalErrorAccessingDatabase.Err())
 			},
 			expectedErr: errors.General.InternalErrorAccessingDatabase.Err(),
+		},
+		{
+			name: "update-ok",
+			input: types.SaveTodoInput{
+				ID:   11,
+				Name: "new todo",
+				Items: []types.SaveTodoItem{
+					{
+						ID:   44,
+						Name: "new item 1",
+					},
+					{
+						ID:   55,
+						Name: "new item 2",
+					},
+					{
+						Name: "new item 3",
+					},
+				},
+			},
+			expectCall: func(e testCase, tx *types_mocks.MockTxnRepository, eventTx *types_mocks.MockEventTxnRepository) {
+				nullTodo := model.NullTodo{
+					Valid: true,
+					Todo: model.Todo{
+						ID:   11,
+						Name: "Test todo",
+					},
+				}
+				GetTodoHelper(tx, 11, nullTodo, nil)
+				GetTodoItemsHelper(tx, 11, []model.TodoItem{
+					{ID: 33},
+					{ID: 44},
+					{ID: 55},
+				}, nil)
+				UpdateTodoHelper(tx, model.TodoSave{
+					ID:   11,
+					Name: "new todo",
+				}, nil)
+
+				DeleteItemsHelper(tx, []model.TodoItemID{33}, nil)
+
+				gomock.InOrder(
+					UpdateItemHelper(tx, model.TodoItemSave{
+						ID:   44,
+						Name: "new item 1",
+					}, nil),
+					UpdateItemHelper(tx, model.TodoItemSave{
+						ID:   55,
+						Name: "new item 2",
+					}, nil),
+				)
+				InsertItemHelper(tx, model.TodoItemSave{
+					TodoID: 11,
+					Name:   "new item 3",
+				}, 0, nil)
+
+				InsertEventHelper(eventTx, BuildTodoSaveEvent(e.input), 31, nil)
+			},
+			expectedErr: nil,
+			expectedID:  11,
 		},
 		{
 			name: "insert-todo-error",
@@ -346,10 +410,10 @@ func TestTodoSaveTx_Error(t *testing.T) {
 				},
 			},
 			expectCall: func(e testCase, tx *types_mocks.MockTxnRepository, eventTx *types_mocks.MockEventTxnRepository) {
-				tx.EXPECT().InsertTodo(gomock.Any(), gomock.Any()).
-					Return(model.TodoID(0), errors.General.InternalErrorAccessingDatabase.Err())
+				InsertTodoHelper(tx, model.TodoSave{
+					Name: "new todo create",
+				}, 0, errors.General.InternalErrorAccessingDatabase.Err())
 			},
-
 			expectedErr: errors.General.InternalErrorAccessingDatabase.Err(),
 		},
 		{
@@ -367,13 +431,15 @@ func TestTodoSaveTx_Error(t *testing.T) {
 				},
 			},
 			expectCall: func(e testCase, tx *types_mocks.MockTxnRepository, eventTx *types_mocks.MockEventTxnRepository) {
-				tx.EXPECT().InsertTodo(gomock.Any(), gomock.Any()).
-					Return(model.TodoID(0), nil)
+				InsertTodoHelper(tx, model.TodoSave{
+					Name: "new todo create",
+				}, 55, nil)
 
-				tx.EXPECT().InsertTodoItem(gomock.Any(), gomock.Any()).
-					Return(model.TodoItemID(0), errors.General.InternalErrorAccessingDatabase.Err())
+				InsertItemHelper(tx, model.TodoItemSave{
+					TodoID: 55,
+					Name:   "new item 4",
+				}, 1, errors.General.InternalErrorAccessingDatabase.Err())
 			},
-
 			expectedErr: errors.General.InternalErrorAccessingDatabase.Err(),
 		},
 		{
@@ -391,16 +457,64 @@ func TestTodoSaveTx_Error(t *testing.T) {
 				},
 			},
 			expectCall: func(e testCase, tx *types_mocks.MockTxnRepository, eventTx *types_mocks.MockEventTxnRepository) {
-				tx.EXPECT().InsertTodo(gomock.Any(), gomock.Any()).
-					Return(model.TodoID(0), nil)
+				InsertTodoHelper(tx, model.TodoSave{
+					Name: "new todo create",
+				}, 55, nil)
 
-				tx.EXPECT().InsertTodoItem(gomock.Any(), gomock.Any()).
-					Return(model.TodoItemID(0), nil).Times(2)
+				gomock.InOrder(
+					InsertItemHelper(tx, model.TodoItemSave{
+						TodoID: 55,
+						Name:   "new item 4",
+					}, 1, nil),
+					InsertItemHelper(tx, model.TodoItemSave{
+						TodoID: 55,
+						Name:   "new item 5",
+					}, 2, nil),
+				)
 
-				eventTx.EXPECT().InsertEvent(gomock.Any(), gomock.Any()).
-					Return(model.EventID(0), errors.General.InternalErrorAccessingDatabase.Err())
+				newInput := e.input
+				newInput.ID = 55
+				InsertEventHelper(eventTx, BuildTodoSaveEvent(newInput), 31,
+					errors.General.InternalErrorAccessingDatabase.Err())
 			},
 			expectedErr: errors.General.InternalErrorAccessingDatabase.Err(),
+		},
+		{
+			name: "insert-ok",
+			input: types.SaveTodoInput{
+				ID:   0,
+				Name: "new todo create",
+				Items: []types.SaveTodoItem{
+					{
+						Name: "new item 4",
+					},
+					{
+						Name: "new item 5",
+					},
+				},
+			},
+			expectCall: func(e testCase, tx *types_mocks.MockTxnRepository, eventTx *types_mocks.MockEventTxnRepository) {
+				InsertTodoHelper(tx, model.TodoSave{
+					Name: "new todo create",
+				}, 55, nil)
+
+				gomock.InOrder(
+					InsertItemHelper(tx, model.TodoItemSave{
+						TodoID: 55,
+						Name:   "new item 4",
+					}, 1, nil),
+					InsertItemHelper(tx, model.TodoItemSave{
+						TodoID: 55,
+						Name:   "new item 5",
+					}, 2, nil),
+				)
+
+				newInput := e.input
+				newInput.ID = 55
+				InsertEventHelper(eventTx, BuildTodoSaveEvent(newInput), 31, nil)
+			},
+			expectedErr: nil,
+			expectedID:  55,
 		},
 	}
 

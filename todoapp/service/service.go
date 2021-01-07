@@ -25,6 +25,19 @@ func NewService(repo types.Repository, client types.EventClient) *Service {
 	}
 }
 
+// BuildTodoSaveEvent ...
+func BuildTodoSaveEvent(input types.SaveTodoInput) model.Event {
+	return types.Event{
+		Data: &todoapp_rpc.Event{
+			Type: todoapp_rpc.EventType_EVENT_TYPE_TODO_SAVE,
+			TodoSave: &todoapp_rpc.EventTodoSave{
+				Id:   uint64(input.ID),
+				Name: input.Name,
+			},
+		},
+	}.ToModel()
+}
+
 func saveTodoTx(
 	ctx context.Context, input types.SaveTodoInput,
 	tx types.TxnRepository, eventTx types.EventTxnRepository,
@@ -47,17 +60,8 @@ func saveTodoTx(
 			}
 		}
 
-		event := types.Event{
-			Data: &todoapp_rpc.Event{
-				Type: todoapp_rpc.EventType_EVENT_TYPE_TODO_SAVE,
-				TodoSave: &todoapp_rpc.EventTodoSave{
-					Id:   uint64(id),
-					Name: input.Name,
-				},
-			},
-		}
-
-		_, err = eventTx.InsertEvent(ctx, event.ToModel())
+		input.ID = id
+		_, err = eventTx.InsertEvent(ctx, BuildTodoSaveEvent(input))
 		if err != nil {
 			return 0, err
 		}
@@ -110,17 +114,7 @@ func saveTodoTx(
 		}
 	}
 
-	event := types.Event{
-		Data: &todoapp_rpc.Event{
-			Type: todoapp_rpc.EventType_EVENT_TYPE_TODO_SAVE,
-			TodoSave: &todoapp_rpc.EventTodoSave{
-				Id:   uint64(input.ID),
-				Name: input.Name,
-			},
-		},
-	}
-
-	_, err = eventTx.InsertEvent(ctx, event.ToModel())
+	_, err = eventTx.InsertEvent(ctx, BuildTodoSaveEvent(input))
 	if err != nil {
 		return 0, err
 	}
